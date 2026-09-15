@@ -1,64 +1,170 @@
 ---
 name: git-history-cleanup
-description: 安全整理并重写 Git 分支历史，在最终仓库 Tree 完全不变的前提下压缩碎片提交、移除已完全回滚或净效果为零的提交链，并用 Tree SHA 做等价校验。用户明确要求“整理最近提交”“合并碎片提交”“清理 revert/临时提交”“重写历史但代码不能变”时使用；不用于普通代码修改，也不得在未获授权时强推共享分支。
+description: 安全整理并重写 Git 分支历史，在最终仓库 Tree 完全不变的前提下保留真实有效的功能、修复、回退与演进记录，只删除明确无价值的临时、占位、误操作和即时修补噪声。用户明确要求“整理最近提交”“清理 Git 历史”“删除无效提交”“合并刚提交错又立即修正的碎片提交”“重写历史但代码不能变”时使用；不用于普通代码修改，也不得在未获授权时强推共享分支。
 ---
 
 # Git 历史整理
 
-目标不是“让日志好看”，而是把一段已经完成的开发历史重新组织成少量、可解释、符合仓库规范的逻辑提交，同时证明整理前后的最终仓库状态完全一致。
+目标不是“把提交数量压到最少”，也不是“让日志看起来整齐”，而是：
 
-## 核心不变量
+> **保留项目真实演进，删除无价值的操作过程。**
 
-历史整理成功的最高优先级条件是：
+默认策略是保守整理：**正常有效提交不动；只有能够明确证明存在问题的提交才删除、合并或改写。**
+
+## 两个核心不变量
+
+历史整理必须同时满足两个维度。
+
+### 1. 最终仓库状态完全一致
 
 ```text
 OLD_HEAD^{tree} == NEW_HEAD^{tree}
 ```
 
-Git Tree SHA 相同意味着最终目录结构、文件内容、文件模式、子树与 gitlink 等 Git 记录完全一致。提交数量变少、`git diff` 为空、测试通过都不能替代这个条件。
+Git Tree SHA 相同意味着最终目录结构、文件内容、文件模式、子树与 gitlink 等 Git 记录完全一致。
 
 只要最终 Tree SHA 不相同，就不得把整理后的历史写回目标分支。
 
-## 使用边界
+### 2. 有价值的历史信息不能被过度压缩
 
-适合：
+Tree 相同只能证明“代码没变”，不能证明“历史整理得对”。
 
-- 一段时间内产生了大量 fixup、临时、占位、误提交或重复提交。
-- 功能经历“新增 → 修复 → 回滚”，最终希望删除已经没有净效果的历史噪声。
-- 多个连续提交实际上属于同一个逻辑改动，希望合并成一个清晰提交。
-- 用户明确要求重写 `main` / `master` 等分支历史，但要求最终代码完全不变。
-- 本地 clone 不可用，但运行环境有 GitHub/GitLab 等低层 Git object API，可以基于 tree/blob/commit/ref 重建历史。
+还必须检查：
 
-不适合：
+- 独立功能提交是否仍然可见。
+- 独立缺陷修复是否仍然可见。
+- 有真实决策意义的 revert 是否仍然可见。
+- 不相关改动是否被错误合并到同一个大提交。
+- 原来已经清晰、有效的提交是否被无理由重写。
 
-- 用户只想修改一个 commit message，且不需要大范围整理。
-- 目标分支是多人共享分支，而用户没有明确授权历史重写。
-- 分支包含需要长期保留的发布 tag、审计锚点或第三方作者提交，但影响尚未评估。
-- 无法建立可恢复的备份分支或无法确认目标分支当前 HEAD。
+如果一次整理把几十条真实功能和修复压成几个“模块级大提交”，即使 Tree 完全相同，也属于**过度整理**。
 
-## 第一原则：最终状态是事实来源
+## 第一原则：默认保留，明确有问题才处理
 
-不要只根据 commit message 判断某个提交是否该保留。先看最终净效果：
+不要先问“这个提交能不能删”，而要先问：
 
-```bash
-git log --graph --decorate --oneline <BASE>..<TARGET>
-git diff --name-status <BASE>..<TARGET>
-git diff --stat <BASE>..<TARGET>
+1. 这个提交是否代表一个独立、完整、可解释的开发事件？
+2. 删除它以后，会不会让后来的人误解项目为什么变成现在这样？
+3. 它是否只是敲代码过程中的临时状态、误操作或紧邻补救？
+
+无法明确证明没有历史价值时，**保留**。
+
+### 推荐判定表
+
+| 情况 | 默认动作 | 说明 |
+| --- | --- | --- |
+| 正常有效的独立功能提交 | 保留 | 不为了整齐而合并 |
+| 正常有效的独立修复提交 | 保留 | `fix` 不是噪声 |
+| 提交信息不规范，但代码有效 | reword | 不因 message 差而删除代码 |
+| 手滑、错文件、调试日志、临时检查、占位文件 | 删除 | 没有独立历史价值 |
+| 一个功能刚提交就发现遗漏，下一条立即补齐 | 合并 | 属于同一次实现过程 |
+| 一个提交同时包含有效和错误改动 | 拆分 | 保留有效部分，丢弃错误部分 |
+| 功能稳定存在一段时间后发现真实缺陷 | 保留 feature + fix | 这是项目真实演进 |
+| 新增后当天立即完整撤销，且只是实验/误操作 | 可删除整链 | 必须有充分证据 |
+| 已发布/使用过，后来因业务决策回退 | 保留新增 + revert | 回退本身有历史意义 |
+| merge 只是无额外内容的包装 | 可去掉 merge 包装 | 保留分支内真实提交 |
+| merge 拓扑有协作、发布、审计价值 | 保留 merge | 不机械线性化 |
+
+## “错误提交”如何理解
+
+不要把“错误提交”简单等同于 `fix`、`revert` 或“最终净效果为零”。
+
+### 可以删除的错误过程
+
+典型特征：
+
+- `tmp`
+- 临时检查文件
+- 错误标记文件
+- 占位文件
+- 调试日志
+- 测试上传文件
+- 刚创建立刻删除的无业务文件
+- 为了探测分支/权限/API 而制造的无意义提交
+
+这类提交即使有独立 SHA，也没有项目演进价值。
+
+### 应该合并的即时补救
+
+例如：
+
+```text
+feat(系统设置): 增加登录验证码
+fix(系统设置): 修复刚提交的验证码参数错误
+fix(系统设置): 补充遗漏的验证码字段
 ```
 
-分类时遵循：
+如果三条连续发生、第一条在当时并未形成完整可用能力，后两条只是把同一次实现补完整，可以整理为一条完整功能提交。
 
-- **保留**：最终状态中仍然存在的独立业务/工程改动。
-- **合并**：同一功能的连续实现、修复和收尾，最终可表达为一个逻辑提交。
-- **删除**：新增后又被完整回滚、创建后删除、临时占位、错误文件等最终净效果为零的提交链。
-- **谨慎处理 merge**：只有在不需要保留分支拓扑语义时才线性化；否则优先保留 merge 结构。
-- **禁止 no-op commit**：如果新提交的 tree 与父提交完全相同，不创建该提交。
+### 应该保留的真实缺陷修复
 
-一个提交“看起来有意义”不等于它最终仍然有净效果；一个 revert “看起来是撤销”也不代表前面的所有提交都应该机械保留。
+例如：
+
+```text
+2026-07-10 feat(系统设置): 增加登录验证码
+...
+2026-07-25 fix(系统设置): 修复验证码过期后无法刷新问题
+```
+
+这类 `fix` 代表真实缺陷发现和修复，应单独保留。
+
+判断重点不是时间间隔本身，而是：前一个版本是否已经作为一个独立、可解释的状态存在过。
+
+## revert 不能按“净效果为零”机械删除
+
+### 可以删除整条 add → revert 链
+
+只有当能够明确证明：
+
+- 这是短暂实验、误提交或当天即时撤销；
+- 没有发布、没有形成其他依赖；
+- 中间过程本身没有审计、协作或决策价值；
+- 删除整链不会让人误解项目演进。
+
+### 应保留 add + revert
+
+如果功能曾经真实存在，后来因为：
+
+- 产品需求变化
+- 风险控制
+- 上线后发现问题
+- 架构决策改变
+- 临时下线
+
+而正式撤销，那么新增和 revert 都是有价值历史。
+
+> “从来没做过”与“做过，后来正式撤销”是两种完全不同的项目历史。
+
+因此：**最终净效果为零，只是删除候选信号，不是删除依据。**
+
+## merge 的处理原则
+
+不要一看到 merge 就拉平。
+
+### 可以去掉纯包装 merge
+
+如果 merge：
+
+- 自身没有额外冲突解决内容；
+- 只是把一个短分支中的若干真实提交带回主线；
+- 分支拓扑没有发布、审计或协作价值；
+
+可以保留分支内真实提交，去掉 merge 包装。
+
+### 应保留 merge
+
+如果 merge：
+
+- 包含有意义的冲突解决；
+- 表达一次正式版本集成；
+- 关联多人协作边界；
+- 关联发布/审计/合规流程；
+
+则保留。
 
 ## 阶段 0：读取仓库规则
 
-在生成任何新 commit 之前，先检查仓库内约束：
+在生成任何新 commit 之前，先检查：
 
 - `AGENTS.md`
 - `CLAUDE.md`
@@ -66,13 +172,13 @@ git diff --stat <BASE>..<TARGET>
 - `git-commit-convention.md`
 - `.github/` 中的 CI / branch policy
 
-如果仓库定义了 commit message 规范，所有重建提交都必须遵守。不要把整理历史当成绕过提交规范的机会。
+如果仓库定义了 commit message 规范，所有新生成或 reword 的提交都必须遵守。
 
-如果多个旧作者身份可能其实属于同一个人，只有在用户明确确认后才合并身份；不要擅自把其他人的提交归到当前用户。
+如果多个旧作者身份可能属于同一个人，只有在用户明确确认后才合并身份；不要擅自把其他人的提交归到当前用户。
 
-## 阶段 1：冻结旧 HEAD，并先备份
+## 阶段 1：冻结目标分支，并建立恢复点
 
-分析完成后，**在真正开始改历史前重新读取一次目标分支**。这是为了避免分析期间目标分支又有新提交。
+分析完成后，真正写操作前重新读取目标分支：
 
 ```bash
 TARGET=master
@@ -81,7 +187,7 @@ OLD_HEAD=$(git rev-parse "origin/$TARGET")
 OLD_TREE=$(git rev-parse "$OLD_HEAD^{tree}")
 ```
 
-然后立刻建立备份：
+建立原始历史备份：
 
 ```bash
 BACKUP="backup/history-before-$(date +%Y%m%d)"
@@ -92,155 +198,267 @@ git push origin "$BACKUP"
 必须记录：
 
 ```text
-目标分支
+TARGET
+BASE
 OLD_HEAD
 OLD_TREE
-备份分支
-整理区间 BASE
+BACKUP
 ```
 
-如果目标分支在“最初分析”与“冻结”之间发生移动，以最新 HEAD 为准，重新计算 commit 区间和最终 Tree；不要继续使用旧快照。
+### 如果目标分支已经被整理过一次
+
+不要覆盖旧恢复点。
+
+推荐保留两层备份：
+
+```text
+backup/history-original-YYYYMMDD
+backup/history-v1-before-YYYYMMDD
+```
+
+第一条保存最原始历史，第二条保存上一版整理结果。这样既能回到最初状态，也能回到最近一个可用整理版本。
+
+如果分析期间目标分支新增了提交，必须把这些新增提交视为真实新工作重新纳入计划；不能用旧快照覆盖。
 
 ## 阶段 2：确定整理基线 BASE
 
-BASE 应该是“本次需要整理的历史窗口之前，最后一个保持不动的提交”。
+BASE 是整理窗口之前最后一个保持不动的提交。
 
 ```bash
-git merge-base <target> <known-good-ref>
-git log --oneline <candidate-base>..<OLD_HEAD>
+git log --graph --decorate --oneline <BASE>..<OLD_HEAD>
 ```
 
-不要为了得到漂亮数字而随意扩大整理窗口。BASE 越早，重写影响越大，旧 commit SHA 失效范围也越大。
+不要为了“减少提交数”向前扩大范围。
 
-## 阶段 3：选择整理策略
+BASE 越早：
+
+- 失效的旧 SHA 越多；
+- 本地 clone 分叉越严重；
+- 审计与回溯成本越高。
+
+## 阶段 3：逐条审提交，不按模块粗分组
+
+先建立提交清单，并查看每条提交的真实 diff，而不是只看 message：
+
+```bash
+git log --reverse --format='%H %P %s' <BASE>..<OLD_HEAD>
+git show --stat --summary <sha>
+git show <sha> --
+```
+
+对每条提交记录：
+
+```text
+SHA
+message
+parent(s)
+changed paths
+是否独立可解释
+是否后来被修复/回退
+是否只是即时补救
+动作：KEEP / REWORD / SQUASH / DROP / SPLIT
+证据
+```
+
+### 最重要的保守规则
+
+- **正常有效提交默认 KEEP。**
+- 不按“系统设置”“工作台”“测试计划”等模块把十几条独立提交压成一条。
+- 不因为同一个功能相关，就自动 squash。
+- 不因为最终代码里某功能不存在，就自动删除它的历史。
+- 无法确定时 KEEP，而不是 DROP。
+
+## 阶段 4：选择重写方式
 
 ### 策略 A：交互式 rebase
 
-适合线性历史、提交数量不多、revert 链简单的情况：
+适合：
+
+- 本地 Git 可用；
+- 历史基本线性；
+- 需要处理的 DROP/SQUASH 很少；
+- 大部分提交保持原样。
 
 ```bash
 git rebase -i <BASE>
 ```
 
-按需使用：
+优先：
 
-- `pick`：保留
-- `reword`：改提交信息
-- `squash` / `fixup`：合并
-- `drop`：删除
+- `pick`：正常有效提交
+- `reword`：只修提交信息
+- `fixup` / `squash`：只用于明确的即时补救
+- `drop`：只用于明确无价值噪声
 
-存在重要 merge 结构时使用支持 merge 的方式，而不是无脑拉平。
+存在重要 merge 时使用保留 merge 的方式。
 
-无论 rebase 多简单，结束后仍然必须做最终 Tree SHA 校验。
+### 策略 B：按原提交粒度精细重放
 
-### 策略 B：最终 Tree 驱动重建
+适合：
 
-适合以下复杂场景：
+- 原始历史复杂；
+- 本地 Git 不可用，只能使用 Git 托管 API；
+- 需要去掉部分 merge 包装或噪声提交；
+- 必须最大限度保留有效提交明细。
 
-- 大量“新增 → 修复 → revert”交叉出现。
-- 合并提交和线性提交混杂。
-- 需要把几十个碎片提交压缩成少量语义提交。
-- 本地 Git 无法使用，只能通过 GitHub 等平台的 blob/tree/commit/ref API 操作。
-- 希望把“最终代码绝不变化”提升为对象级硬约束。
+核心不是“从最终 Tree 重新按模块造几个大提交”，而是：
 
-核心做法：**把冻结的 OLD_TREE 当成最终事实来源，用 BASE 作为起点，逐组把最终状态中的精确 blob/subtree 应用到合成历史中。**
+> **从原始历史逐条读取真实改动，只对被判定为 DROP/SQUASH 的提交动手，其余有效提交按原粒度重放。**
 
-伪代码：
+推荐流程：
 
 ```text
-parent_commit = BASE
-current_tree = BASE_TREE
+parent = BASE
 
-for logical_group in groups:
-    current_tree = apply_exact_final_entries(current_tree, logical_group.paths)
+for original_commit in original_history_in_order:
+    decision = classify(original_commit)
 
-    if current_tree == parent_commit.tree:
-        skip  # no-op
+    if decision == DROP:
+        continue
 
-    parent_commit = create_commit(
-        message=logical_group.message,
-        tree=current_tree,
-        parent=parent_commit,
-    )
+    if decision == SQUASH:
+        accumulate_patch_into_target_commit()
+        continue
 
-assert current_tree == OLD_TREE
-NEW_HEAD = parent_commit
+    if decision == KEEP or REWORD:
+        new_tree = replay_exact_effect(original_commit, parent)
+        new_commit = create_commit(new_tree, parent, normalized_message)
+        parent = new_commit
+
+assert parent.tree == OLD_TREE
 ```
 
-### Tree 重建时的重要细节
+### 不要滥用“最终 Tree 驱动重建”
 
-1. **优先复用最终 Tree 中已经存在的 blob/subtree SHA**，不要无理由重新生成文件内容。
-2. 每个逻辑提交只吸收属于自己的路径变化。
-3. 如果一个顶层模块还包含“以后才应该出现”的改动，不要提前把整个模块 subtree 一次替换成最终版本；应在该模块内部构造中间 tree。
-4. 每创建一个逻辑提交后，都检查它与父提交的 tree 是否真的不同。
-5. 最后一条提交生成后，先比较 `NEW_TREE` 与 `OLD_TREE`，相同后才能考虑移动目标 ref。
-6. 如果低层 API 生成的 commit 不带签名，而仓库要求 signed commits，应改用能够签名的本地 Git / 正常平台合并流程，不要悄悄降低签名要求。
+最终 Tree 很适合做**等价校验**，但如果直接按最终模块 subtree 重建历史，极易产生过度合并：
 
-## 阶段 4：逻辑提交怎么分组
+```text
+几十条真实提交
+→ 系统设置一个大提交
+→ 缺陷管理一个大提交
+→ 工作台一个大提交
+```
 
-优先按“最终意图”而不是旧提交时间顺序机械分组。
+这会丢掉真实演进明细。
 
-推荐规则：
+如果确实需要低层 tree API：
 
-- 一个功能 + 为了让该功能正确工作的连续修复 → 一个功能提交。
-- 同一模块内互不相关的两个功能 → 分成两个提交。
-- 新增某功能，后来完整 revert，最终完全不存在 → 整条链删除。
-- 临时日志、占位文件、错误提交，后来完整删除 → 删除。
-- 先删后加，最终形成一个明确的新实现 → 只保留能解释最终状态的逻辑历史。
-- 大范围 merge 如果只是带入一个独立功能，可压缩成对应功能提交；如果 merge 拓扑本身有审计/协作意义则保留。
-- 文档、CI、构建、业务功能尽量按职责拆开，不把无关路径塞进同一个“万能提交”。
+1. 仍然先按原始 commit 粒度分类。
+2. KEEP 的提交尽量重放其真实差异。
+3. 只有明确 SQUASH 的小段才合并 tree 变化。
+4. 最终 OLD_TREE 只作为硬校验，不作为“如何分组”的唯一依据。
 
-提交信息必须重新按照当前仓库规范生成，不照抄旧历史里的 `tmp`、`修改`、`fix bug` 等低质量消息。
+### Tree API 的细节
 
-## 阶段 5：目标分支更新前的硬校验
+- 优先复用已有 blob/subtree SHA。
+- 不要提前把整个模块替换成最终 subtree，否则会提前吸收后续提交。
+- 每个新提交都要确认 tree 与父提交不同，避免 no-op commit。
+- 如果仓库要求 signed commits，低层 API 创建的 unsigned commit 不合格，应改用支持签名的正常 Git 流程。
 
-至少执行以下三类验证。
+## 阶段 5：提交信息处理
 
-### 1. Tree SHA 等价
+### 原 message 已合规
+
+尽量保留，不为了统一措辞无意义 reword。
+
+### 原 message 不合规，但提交有效
+
+只 reword，不改变提交粒度。
+
+例如：
+
+```text
+feature:登录页增加验证码功能
+```
+
+可规范为：
+
+```text
+feat(系统设置): 增加登录验证码功能
+```
+
+### 无意义 message
+
+如：
+
+```text
+tmp
+修改
+错误
+不使用
+```
+
+先判断代码是否有历史价值：
+
+- 没有价值 → DROP。
+- 有价值 → KEEP 代码并重新生成合规 message。
+
+## 阶段 6：候选历史完成后的双重校验
+
+### A. 最终代码等价
 
 ```bash
 NEW_TREE=$(git rev-parse "$NEW_HEAD^{tree}")
-
 test "$OLD_TREE" = "$NEW_TREE"
-```
-
-这是最重要的证明。
-
-### 2. 提交间 diff 为空
-
-```bash
 git diff --exit-code "$OLD_HEAD" "$NEW_HEAD" --
 git diff --summary "$OLD_HEAD" "$NEW_HEAD"
 ```
 
-应该没有文件内容、文件模式、重命名等差异。
+### B. 历史粒度审计
 
-### 3. 备份仍然指向冻结的旧历史
+重新查看：
 
 ```bash
-test "$(git rev-parse "$BACKUP")" = "$OLD_HEAD"
+git log --reverse --oneline <BASE>..<NEW_HEAD>
 ```
 
-如果在托管平台操作，还应比较备份分支与冻结的旧 SHA，确认 `ahead=0`、`behind=0` 或等价状态。
+逐项确认：
 
-## 阶段 6：先发布清理分支，再改目标分支
+- 原本正常有效的功能提交仍然可识别。
+- 原本独立的真实 fix 没有被吃进大提交。
+- 有价值的 add + revert 仍然存在。
+- 只删除了有证据支持的噪声。
+- 没有按模块粗暴聚合。
+- 没有 no-op commit。
 
-复杂整理优先先得到一个独立清理分支，例如：
+建议记录数量：
 
 ```text
-refactor/clean-history-YYYYMMDD
+原提交数
+KEEP 数
+REWORD 数
+SQUASH 数
+DROP 数
+新提交数
 ```
 
-先验证：
+新提交数变少不是目标，只是清理后的结果。
 
-- 清理分支 HEAD = 计划中的 NEW_HEAD。
+## 阶段 7：先发布清理分支，再执行 HEAD Guard
+
+复杂整理先发布：
+
+```text
+refactor/clean-history-v2-YYYYMMDD
+```
+
+检查：
+
+- 清理分支 HEAD = 计划 NEW_HEAD。
 - 清理分支 Tree = OLD_TREE。
-- 备份分支仍然 = OLD_HEAD。
-- BASE → 新 HEAD 的提交数量与计划一致。
+- 原始备份仍然存在。
+- 上一版备份仍然存在（如果有）。
+- BASE → 清理分支的提交数量与分类记录一致。
 
-然后**再次读取目标分支远端 HEAD**。如果它已经不等于冻结的 `OLD_HEAD`，停止强推并重新评估；不能覆盖别人刚提交的新工作。
+然后重新读取目标分支：
 
-本地 Git 优先使用带 lease 的强推：
+```text
+current_target_head == OLD_HEAD
+```
+
+只有成立，才能更新目标分支。
+
+本地 Git：
 
 ```bash
 git push \
@@ -248,17 +466,22 @@ git push \
   origin "$NEW_HEAD:refs/heads/$TARGET"
 ```
 
-使用 GitHub 等 API 的 `update_ref(force=true)` 时，也要先读取当前 ref，并手工实现同样的 lease 语义：
+API `update_ref(force=true)` 也必须手工实现相同 lease 保护。
+
+如果目标分支已经移动：
 
 ```text
-current_target_head == OLD_HEAD
+停止
+→ 获取新增提交
+→ 重放到候选历史尾部
+→ 更新 OLD_HEAD / OLD_TREE
+→ 重新验证
+→ 再做 HEAD Guard
 ```
 
-只有成立才允许 force update。
+禁止覆盖新增工作。
 
-## 阶段 7：改完目标分支后再验证一次
-
-重新读取目标分支：
+## 阶段 8：更新目标分支后复核
 
 ```bash
 git fetch origin
@@ -271,26 +494,31 @@ test "$FINAL_TREE" = "$OLD_TREE"
 
 再确认：
 
-- 备份分支仍指向旧 HEAD。
-- 清理分支与目标分支一致。
-- BASE 到目标分支的新提交数量正确。
-- 分支保护、required checks、CI 状态已重新检查。
+- 清理分支与目标分支 identical。
+- 原始备份仍精确指向旧历史。
+- 上一版备份仍可恢复。
+- 提交数量正确。
+- CI / workflow / required checks 已查看。
 
-### Tree 相同不等于“新 commit 的 CI 已通过”
+### Tree 相同不等于新 SHA 的 CI 已通过
 
-历史重写会产生新的 commit SHA。即使最终 Tree 与旧代码完全一致，也不要把旧 SHA 的 CI 状态当作新 SHA 的 CI 结果。
+历史重写会产生新 commit SHA。
 
-如果新 SHA 没有 workflow run / status check，应明确报告：
+旧 SHA 的 CI 不能自动继承到新 SHA。
+
+如果新 SHA 没有 workflow/status：
 
 ```text
 代码 Tree 已证明完全一致；当前新提交没有可确认的 CI 运行，因此不宣称测试已通过。
 ```
 
-## 本地克隆如何同步
+## 本地 clone 如何同步
 
-历史重写后，旧本地分支会与远端分叉。
+历史重写后，旧本地分支通常已经与远端分叉。
 
-### 本地没有未提交工作
+### 没有未提交工作，也没有本地独有 commit
+
+不要直接 `git pull`，推荐：
 
 ```bash
 git fetch origin
@@ -298,56 +526,100 @@ git checkout <target>
 git reset --hard origin/<target>
 ```
 
-### 本地还有工作
-
-不要直接 `reset --hard`。先：
+然后确认：
 
 ```bash
 git status
-git branch backup/local-before-history-sync
+git rev-parse HEAD
+git rev-parse origin/<target>
 ```
 
-再根据实际情况 commit/stash 本地工作，把本地独有提交 rebase 或 cherry-pick 到新的目标分支。
+两个 SHA 应一致。
+
+### 有未提交修改
+
+先保存：
+
+```bash
+git stash push -u -m "同步历史重写前本地修改"
+git fetch origin
+git checkout <target>
+git reset --hard origin/<target>
+git stash pop
+```
+
+如有冲突，人工解决。
+
+### 有本地独有 commit
+
+不要直接 hard reset。
+
+```bash
+git checkout <target>
+git branch backup/local-before-history-sync
+git fetch origin
+git reset --hard origin/<target>
+git log --oneline origin/<target>..backup/local-before-history-sync
+```
+
+再把确实需要的本地提交 `cherry-pick` / rebase 到新历史上。
 
 ## 回滚
 
-备份分支是历史重写的恢复点，不要刚整理完就删除。
+备份分支不是临时垃圾，不要整理结束就删除。
 
 需要回滚时：
 
-1. 先读取目标分支当前 HEAD，确认没有整理后新增的其他工作。
-2. 读取备份分支，确认仍然是 `OLD_HEAD`。
-3. 用 `--force-with-lease` 或 API 的等价保护把目标分支恢复到旧 SHA。
-4. 再验证目标 Tree / HEAD。
+1. 检查目标分支整理后是否有新提交。
+2. 检查原始备份仍精确指向旧 HEAD。
+3. 如果还保留上一版整理备份，可先比较哪一版更适合作为恢复点。
+4. 使用 `--force-with-lease` 或 API 等价机制恢复。
+5. 再验证 HEAD / Tree。
 
-如果目标分支在整理后已经有新提交，不允许直接把它粗暴恢复到备份点；先保护新增工作。
+如果整理后已经有新工作，先保护新工作，禁止直接把目标分支粗暴回退到旧备份。
 
 ## 最终报告必须包含
 
-完成后至少向用户报告：
+至少报告：
 
-- 整理前目标 HEAD。
-- 整理前目标 Tree SHA。
-- 整理后目标 HEAD。
-- 整理后目标 Tree SHA。
-- 两个 Tree SHA 是否完全相同。
-- BASE 与整理前/后的提交数量。
-- 哪些类型的提交链被合并或删除。
-- 备份分支名称与它是否仍精确指向旧 HEAD。
-- 清理分支与目标分支是否一致。
-- 新 SHA 是否真的有 CI / workflow 结果。
-- 本地 clone 应如何同步。
+- 整理前 HEAD / Tree。
+- 整理后 HEAD / Tree。
+- Tree 是否完全一致。
+- BASE。
+- 原提交数与新提交数。
+- KEEP / REWORD / SQUASH / DROP 的数量或关键明细。
+- 明确删除了哪些“无价值噪声”类型。
+- 哪些真实 feature / fix / revert 被保留。
+- 原始备份分支。
+- 上一版备份分支（如果有）。
+- 清理分支与目标分支是否 identical。
+- 新 SHA 的实际 CI / workflow 状态。
+- 本地 clone 同步方式。
 
-不要只说“代码没变”。应给出可核验的 Git 对象证据。
+不要只说“代码没变”，也不要只说“提交从 78 条变成 8 条”。
+
+应该同时证明：
+
+```text
+代码没变
++
+有效历史没有被过度压缩
+```
 
 ## 禁止事项
 
-- 未经用户明确授权强推共享分支。
-- 没建备份就开始破坏性重写。
-- 只看 commit message，不看最终净效果。
+- 未经明确授权强推共享分支。
+- 没有备份就开始破坏性重写。
+- 只看 commit message，不看真实 diff。
+- 只看最终净效果就删除 add + revert。
+- 把所有 `fix` 当成实现噪声。
+- 按模块把多个独立功能/修复压成一个大提交。
+- 为了减少 commit 数量而扩大整理范围。
+- 无法确定是否有历史价值时擅自 DROP。
 - 最终 Tree 不相同仍继续 force push。
-- 目标分支在冻结后又移动，却仍覆盖旧快照。
-- 把别人的提交作者改成当前用户，除非身份已明确确认。
-- 因为“Tree 一样”就宣称新 SHA 的 CI 已通过。
-- 整理完成后立即删除唯一备份分支。
-- 给有未提交工作的本地 clone 直接执行 `reset --hard`。
+- 目标分支冻结后移动，却仍覆盖旧快照。
+- 把其他作者的提交改成当前用户，除非身份已明确确认。
+- 因为 Tree 一样就宣称新 SHA 的 CI 已通过。
+- 整理完成后立即删除唯一恢复分支。
+- 对有未提交工作或本地独有提交的 clone 直接执行 `reset --hard`。
+- 历史重写后建议用户直接 `git pull` 解决分叉。

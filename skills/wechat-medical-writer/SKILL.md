@@ -172,6 +172,14 @@ Reference 呈现方式
 
 **High fidelity 不是“把所有品牌组件都用上”，而是复用最接近参考文章的组件语法与密度。**
 
+如果用户直接给出公众号样式编号（如 `标题-02 + 正文-02 + 参考文献-01`），先读取：
+
+```text
+references/layouts/wechat-component-library.md
+```
+
+这些稳定 ID 是明确的排版约束。优先复用 image-gallery 当前组件实现，不擅自换成别的同类样式，也不要在用户指定组合之外堆叠大量大型组件。
+
 当用户明确要求“光愈在线式 / 类似我提供的光愈在线公众号排版”时，排版前读取：
 
 ```text
@@ -183,6 +191,18 @@ references/layouts/guangyu-online.md
 ## 配图 / 排版 / 草稿箱
 
 这些步骤是**按需下游**，不要阻塞纯写作任务。
+
+### 0. 品牌资产与封面
+
+只要成品明确属于“医荟她健康”，需要 Logo / KV / 品牌图或公众号封面时，先读取：
+
+```text
+references/brands/yihui-she-health.md
+```
+
+已入库品牌图片以独立 `image-gallery` 为二进制事实源；不要因为本 Skill 仓库没有 PNG 就重新生成近似 Logo/KV。4 个 Logo 当前是候选方案，用户未指定主 Logo 时不要擅自固定其中一个。
+
+公众号封面无特殊说明时按 **2.35:1** 生成或裁切，并按移动端缩略图检查主题识别度。
 
 ### 1. 配图
 
@@ -245,6 +265,10 @@ visual_references    只决定复杂度 / Panel 密度 / 视觉语法
 不要把所有文章强制交给同一个 formatter。根据用户要求和参考样稿选择：
 
 ```text
+用户明确指定组件 ID
+→ 读取 references/layouts/wechat-component-library.md
+→ 按指定稳定 ID 组合对应 inline HTML
+
 普通学术长文 / 常规公众号正文
 → canghe-markdown-to-html
 
@@ -364,6 +388,7 @@ wechat-medical-writer
    → 必要时视觉润色
         ↓
 排版路由：
+├─ 指定样式 ID → wechat-component-library.md → 精确组件组合
 ├─ 常规文章 → canghe-markdown-to-html
 ├─ 访谈/Q&A/组件化 → xiaohu-wechat-format
 └─ 光愈在线式 → 读取 guangyu-online.md；头像访谈再叠加本地 adapter
@@ -391,8 +416,11 @@ references/medical-constraints.md
 references/medical-figure-design.md
 references/upstreams.md
 references/layouts/guangyu-online.md
+references/layouts/guangyu-launch-first-article.md
+references/layouts/wechat-component-library.md
+references/brands/yihui-she-health.md
 scripts/enhance_guangyu_dialogue.py
 tests/test_guangyu_dialogue.py
 ```
 
-用户原始医学资料、公众号 HTML、图片、视频、头像、Logo 和 ZIP 不进入仓库。唯一的 Writer 提示词副本是独立目录 `skills/content-research-writer/`，它是为解决安装可用性而保留的、带 MIT License、upstream provenance 和完整性锁的 vendored 副本，不在医学 Skill 内进行二次改写。`xiaohu-wechat-format` 与苍何保持外部依赖，不复制进本仓库。
+用户原始医学资料、第三方公众号 HTML、图片、视频、头像、Logo 和 ZIP 不进入本 Skill 仓库。用户已经明确授权并正式入库的品牌图片可存放在独立 image-gallery 资产仓库；本 Skill 只保存稳定路径、ID 与使用规则，不复制二进制资产。唯一的 Writer 提示词副本是独立目录 `skills/content-research-writer/`，它是为解决安装可用性而保留的、带 MIT License、upstream provenance 和完整性锁的 vendored 副本，不在医学 Skill 内进行二次改写。`xiaohu-wechat-format` 与苍何保持外部依赖，不复制进本仓库。

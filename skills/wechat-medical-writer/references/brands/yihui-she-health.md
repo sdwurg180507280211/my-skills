@@ -112,7 +112,7 @@ https://sdwurg180507280211.github.io/image-gallery/images/wechat/yihui-she-healt
 - 这 4 个 Logo 当前是**用户提供的候选方案**，不是 4 个同时生效的“官方主 Logo”；在用户明确指定主 Logo 前，不要擅自把某一个永久认定为唯一官方版本；
 - 用户点名 `图片-01` ～ `图片-06` 时，直接复用对应已入库资产，不重新生成近似图；
 - 若文章需要品牌图而用户没有指定具体候选，可优先询问/沿用当前任务已明确选择的版本；不要随机换 Logo；
-- 文章运行时 HTML 可以引用 image-gallery 的公开图片地址；Skill 仓库只保存路径规则，不保存 PNG 二进制；
+- 预览 HTML 可以引用 image-gallery 公开图片地址；正式发布由上游上传为微信托管图片并检查实际草稿。来源 URL 不等于已完成微信图片上传；Skill 仓库只保存路径规则，不保存 PNG 二进制；
 - 新的用户品牌图进入画廊时，继续遵循 image-gallery 仓库中的 `docs/image-upload-via-adobe-bridge.md`，不得把聊天缩略图或临时预览页当作正式原图。
 
 ## 5. 公众号封面规则
@@ -129,7 +129,13 @@ https://sdwurg180507280211.github.io/image-gallery/images/wechat/yihui-she-healt
 
 ## 6. 与光愈在线参考画像的关系
 
-排版 / 图片 / 封面需要参考光愈在线时，同时读取：
+医荟她普通文章默认读取自己的输出画像：
+
+```text
+../layouts/yihui-article-style.md
+```
+
+用户明确要求光愈参考时才按场景读取，不要每篇加载首发或访谈样式：
 
 ```text
 ../layouts/guangyu-online.md

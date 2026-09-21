@@ -28,16 +28,16 @@
 - AI 模型公开稿的价格、免费额度、上下文、限速与渠道信息优先回到官方公告、官方定价页或官方文档；标准按量价、缓存价、Batch 价、包月摊销价、新用户额度和限时活动不得混写。无法核实的价格必须明确标记，不能补造数字。
 - AI 模型渠道必须区分 `[官方]`、`[云平台官方接入]`、`[正规聚合平台]`、`[非官方中转]`；禁止推荐盗号、共享 API Key、来源不明密钥、绕过地区限制或明显违反服务条款的渠道。非官方中转即使便宜，也必须同时呈现数据隐私、稳定性、版本真实性、封号和跑路风险。
 - AI 模型日报的视觉优先级是“结论卡 / 数据表 / 模型信息卡 / 必要的数据图 > 装饰性 AI 插图”。没有可信数据时不得生成伪价格图、伪排行榜或模型主观评分雷达图。默认布局画像维护在 `skills/wechat-ai-model-writer/references/layouts/ai-savings-daily.md`。
-- 医学主题与 AI 模型主题到高质量正文都必须 handoff 给 `content-research-writer`。由于该 upstream 在用户可用的插件市场不可达，本仓库按 MIT License 将已审计版本 vendored 为独立 `skills/content-research-writer/` 并加入 `utility-skills` bundle；不得在该 vendored `SKILL.md` 中加入医学或 AI 模型省钱特有逻辑。
+- 医学主题使用现成 Writer 的原生流程，`content-research-writer` 是当前默认候选，未通过医学中文长文对照评测，不锁定为唯一选项。AI 模型写作仍使用该 Writer。现有 MIT vendored 副本和完整性锁保留；不得在上游 `SKILL.md` 中加入领域逻辑。
 - `content-research-writer` 的本地副本必须由 `UPSTREAM.lock.json` 锁定；`scripts/validate_skills.py` 会检查 Git blob 指纹，未同步更新 lock 的本地改动应直接失败。
-- 如果运行环境只安装了 `wechat-medical-writer` 或 `wechat-ai-model-writer` 而缺少 `content-research-writer`，应提示安装同仓库主 Writer，不得悄悄实现 fallback Writer。
+- 写作时先定位并读取所选 Writer 的真实 SKILL.md；缺失则提供对应宿主的安装方法，不实现 fallback Writer。已有文章仅排版不要求重新经过 Writer。
 - Handoff 时把已知的主题、受众、目标、篇幅/形式、用户资料、参考样稿、风格要求和领域约束一次性传给主 Writer；已经知道的信息不要重复问。用户明确要求“一口气成稿”时，可让主 Writer 连续执行原生的大纲、研究、草稿、引用检查和最终润色步骤。
 - 面向公开发布的医学文章，关键数字、指南/共识推荐、疗效/安全性、适应证、监管状态和可能影响临床判断的事实默认要求可追溯来源；正文引用与参考文献在交付前必须闭环。只有用户明确要求“仅按提供资料、不做外部核验”时才允许限制在用户来源，并在成稿中说明该边界。
 - `Viral Writer` 仅可作为用户明确要求时的可选表达润色层，不得修改或新增医学事实、数字、指南、适应证、监管状态或引用。
 - 苍何不是纯写作的前置依赖。用户要求正文配图时优先 `canghe-article-illustrator`；普通学术文章/常规公众号排版优先 `canghe-markdown-to-html`；最终草稿箱发布统一优先 `canghe-post-to-wechat`。
 - 专家访谈、Q&A、对话气泡、导语卡、卡片、timeline、hero 等组件化公众号布局可按需调用外部 `xiaohuailabs/xiaohu-wechat-format`，只用其 formatter，不使用其封面生成或 `publish.py`，避免和苍何重复。
 - 当前已审计的 `xiaohu-wechat-format` `:::dialogue` 只支持“说话人文本 + 左右交替气泡”，没有头像/Logo 字段。其 README 声明 MIT，但 GitHub 元数据未识别许可证且仓库缺独立 `LICENSE` 文件，因此本仓库不得 vendor、复制脚本/主题或长期 fork，除非许可证文本明确。
-- 用户运行时提供公众号截图、HTML 或打包 ZIP 时，可以从真实 HTML 提炼**视觉画像**，但原始 HTML、图片、视频和 ZIP 不提交。视觉画像只记录跨样本稳定的颜色/尺寸/组件，不成为医学事实来源，也不取代 `content-research-writer` 的写作流程。
+- 用户运行时提供公众号截图、HTML 或 ZIP 时，可以从真实 HTML 和明确偏好提炼视觉画像；原件不提交，画像不成为医学事实或固定文章结构。医荟她默认样式在 `references/layouts/yihui-article-style.md`，正文 15px/1.8/1px，科学图按证据语义放置，不按页面百分比硬排。
 - “光愈在线式”布局画像维护在 `skills/wechat-medical-writer/references/layouts/guangyu-online.md`。它不是固定文章模板；仅在用户明确要求相似视觉或样本确实匹配时读取。
 - `光愈在线` 仅是参考品牌，最终医学公众号输出默认属于 **“医荟她健康”**。生成或排版前读取 `skills/wechat-medical-writer/references/brands/yihui-she-health.md`，不得把光愈在线 Logo、名称、二维码、小程序、项目落款等带入医荟她健康成品。
 - `医荟她健康` 当前没有小程序。除非用户后续明确提供真实小程序名称、AppID、path、二维码、截图和已上线功能，否则不得生成小程序卡片、二维码、入口或把未来规划写成已上线能力。

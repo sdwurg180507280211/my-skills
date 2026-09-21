@@ -1,0 +1,34 @@
+/* 医荟她品牌参数；由苍何 MD_THEME_DIR 接口加载并内联，不替代渲染器。 */
+body { max-width: 677px; box-sizing: border-box; padding: 24px 18px 40px; background: #fff; }
+section, container, p, li {
+  font-size: 15px;
+  line-height: 1.8;
+  letter-spacing: 1px;
+  color: #3E3E3E;
+}
+p { margin: 0 0 18px; }
+h2 {
+  font-size: 18px;
+  line-height: 1.8;
+  color: #3E3E3E;
+  border-left: 3px solid #F24D60;
+  padding-left: 12px;
+  margin: 30px 0 18px;
+}
+h3, h4, h5, h6 { font-size: 16px; line-height: 1.8; color: #3E3E3E; }
+blockquote { margin: 0 0 24px; padding: 16px; border: 1px solid #F24D60; }
+blockquote p { font-size: 15px; line-height: 1.8; letter-spacing: 0.5px; margin: 0; }
+figure { margin: 30px 0 36px; }
+img { width: 100%; max-width: 100%; height: auto; display: block; margin: 30px auto 36px; }
+figure img { margin: 0; }
+sup { font-size: 11px; }
+figcaption, .md-figcaption { font-size: 12px; line-height: 1.8; color: #666; }
+.footnotes, .footnotes p, .footnotes li,
+.yihui-references, .yihui-references p, .yihui-references li {
+  font-size: 12px;
+  line-height: 1.8;
+  letter-spacing: 0;
+}
+.yihui-section-number { font-size: 21px; }
+a { color: #576b95; text-decoration: none; }
+strong { color: inherit; }

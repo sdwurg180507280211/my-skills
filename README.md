@@ -15,7 +15,7 @@
 | [`wechat-android-shortcuts`](skills/wechat-android-shortcuts) | Utility | ADB 驱动微信官方“添加到桌面”，创建/检查 Android 公众号或小程序快捷方式 |
 | [`wechat-ios-shortcuts`](skills/wechat-ios-shortcuts) | Utility | 名称 + URL → Apple Web Clip `.mobileconfig` → iPhone/iPad 主屏幕图标 |
 | [`content-research-writer`](skills/content-research-writer) | Utility | 上游 vendored：研究 → 大纲 → 引用 → 高质量文章；用于补足插件市场不可达的主 Writer |
-| [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医学领域上下文/资料约束 → 强制 handoff 给 `content-research-writer` → 按需配图/排版/发布；支持公众号样本布局画像与小型品牌适配器 |
+| [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医荟她健康的医学约束、品牌与文章样式；复用现成 Writer 和苍何配图/排版/发布 |
 | [`wechat-ai-model-writer`](skills/wechat-ai-model-writer) | Utility | AI 模型/价格/免费额度/高性价比渠道情报 → 日报/重大更新/周报选题 → 价格与渠道核验 → 科技情报刊式公众号排版 |
 
 ## 安装
@@ -27,6 +27,8 @@ npx skills add sdwurg180507280211/my-skills
 ```
 
 ### Claude Code Plugin Marketplace
+
+Codex 安装见 [医学 Skill 的宿主安装说明](skills/wechat-medical-writer/references/upstreams.md#codex)：支持将两个 Skill 链接到 `~/.agents/skills/`。下面的 `/plugin` 命令只用于 Claude Code。
 
 ```text
 /plugin marketplace add sdwurg180507280211/my-skills
@@ -153,7 +155,7 @@ GitHub Actions 会检查：Skill/frontmatter/Marketplace 结构、vendored upstr
 - `content-research-writer` 是受控 vendored 例外；医学逻辑与 AI 模型省钱逻辑都不得写进它。
 - 不提交 Cookie、Token、登录态、用户原始 ZIP/PPT/PDF/公众号 HTML、图片、视频、头像、Logo、患者资料或未公开研究。
 - 公众号样本可在运行时用于提炼视觉画像，但画像不能成为医学事实来源，也不能把单篇样稿固化成所有文章的写作模板。
-- `wechat-medical-writer` 保持薄编排：写作交给 `content-research-writer`；常规排版用苍何；复杂组件用 xiaohu；只对明确缺失的品牌视觉增加小型、离线可测试的后处理器；最终发布优先 `canghe-post-to-wechat`。
+- `wechat-medical-writer` 保持医学与医荟她品牌适配：现成 Writer 使用原生流程，`content-research-writer` 为待医学对照评测的默认候选；常规排版与发布用苍何，复杂组件按需用 xiaohu；新图保存本地文件，发布时核对图片上传与实际草稿。
 - `wechat-ai-model-writer` 只维护模型情报特有的选题路由、价格/免费额度/渠道风险约束和科技媒体排版；不复制通用研究写作，不把每日采集条目机械变成固定 5+2 新闻稿。
 - 微信浏览器书签、Android 真机自动化、iOS Web Clip 与公众号内容编排保持独立，通过文件/数据契约松耦合。
 

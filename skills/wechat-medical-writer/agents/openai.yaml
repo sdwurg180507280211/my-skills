@@ -1,0 +1,4 @@
+interface:
+  display_name: "医荟她健康公众号"
+  short_description: "医学证据约束与医荟她品牌样式，复用现成写作、配图及微信发布能力"
+  default_prompt: "使用 $wechat-medical-writer，按医荟她健康的医学约束与文章样式完成当前公众号任务。"

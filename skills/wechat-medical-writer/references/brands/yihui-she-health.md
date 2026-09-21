@@ -69,7 +69,65 @@ AppID
 
 不能为了提前“预留能力”而在当前文章中出现空壳入口。
 
-## 4. 与光愈在线参考画像的关系
+## 4. 品牌资产注册表
+
+医荟她健康已经有一组由用户提供并正式入库的品牌图片。**原图不复制到本 Skill 仓库**，统一由独立的 `image-gallery` 作为二进制资产事实源；本文件只记录可复用资产的稳定路径和使用边界。
+
+资产仓库：
+
+```text
+https://github.com/sdwurg180507280211/image-gallery/
+```
+
+GitHub Pages 公共基址：
+
+```text
+https://sdwurg180507280211.github.io/image-gallery/images/wechat/yihui-she-health/
+```
+
+当前已登记：
+
+```text
+图片-01  yihui-she-health-logo-heart-mother.png
+         Logo 候选｜心形女性与医疗十字
+
+图片-02  yihui-she-health-logo-heart-ribbon.png
+         Logo 候选｜爱心飘带女性
+
+图片-03  yihui-she-health-logo-mother-child-round.png
+         Logo 候选｜母女圆形徽章
+
+图片-04  yihui-she-health-logo-female-floral.png
+         Logo 候选｜女性花瓣标识
+
+图片-05  yihui-she-health-kv-horizontal-horse-year.png
+         马年横版 KV
+
+图片-06  yihui-she-health-kv-vertical-horse-year.png
+         马年竖版 KV
+```
+
+使用规则：
+
+- 这 4 个 Logo 当前是**用户提供的候选方案**，不是 4 个同时生效的“官方主 Logo”；在用户明确指定主 Logo 前，不要擅自把某一个永久认定为唯一官方版本；
+- 用户点名 `图片-01` ～ `图片-06` 时，直接复用对应已入库资产，不重新生成近似图；
+- 若文章需要品牌图而用户没有指定具体候选，可优先询问/沿用当前任务已明确选择的版本；不要随机换 Logo；
+- 文章运行时 HTML 可以引用 image-gallery 的公开图片地址；Skill 仓库只保存路径规则，不保存 PNG 二进制；
+- 新的用户品牌图进入画廊时，继续遵循 image-gallery 仓库中的 `docs/image-upload-via-adobe-bridge.md`，不得把聊天缩略图或临时预览页当作正式原图。
+
+## 5. 公众号封面规则
+
+医荟她健康公众号封面默认使用：
+
+```text
+宽高比：2.35:1
+```
+
+除非用户明确指定其他比例，公众号封面生成、裁切和最终检查都按 2.35:1 执行。
+
+封面应优先服务文章主题与移动端缩略图识别，不为了“品牌感”强行塞入过多组件。若使用 Logo，必须来自上面的真实候选资产且版本已被用户明确选定；若没有明确主 Logo，可以只使用“医荟她健康”文字品牌而不强行放图形标识。
+
+## 6. 与光愈在线参考画像的关系
 
 排版 / 图片 / 封面需要参考光愈在线时，同时读取：
 
@@ -87,12 +145,14 @@ AppID
 
 不得把两者混为一个品牌。
 
-## 5. 发布前品牌 QA
+## 7. 发布前品牌 QA
 
 ```text
 [ ] 成品是否明确属于“医荟她健康”？
 [ ] 是否残留“光愈在线”Logo、名称、二维码、小程序或项目落款？
 [ ] 当前没有小程序时，是否误生成了小程序入口或功能说明？
 [ ] Logo / 二维码 / 头像是否来自用户真实素材，而不是模型伪造？
+[ ] 如使用 Logo，是否使用了用户明确选择的候选版本，而不是擅自把任一候选设为官方主 Logo？
+[ ] 公众号封面若无特殊说明，是否按 2.35:1 检查？
 [ ] 参考品牌元素是否只被当作视觉参考，而没有被当成业务事实？
 ```

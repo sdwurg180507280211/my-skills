@@ -24,6 +24,7 @@
 排版路由：
 ├─ 常规文章 → canghe-markdown-to-html
 ├─ 访谈/Q&A/组件化 → xiaohu-wechat-format
+├─ 用户指定样式 ID → references/layouts/wechat-component-library.md
 └─ “光愈在线式”头像访谈 → xiaohu + 本地轻量品牌适配器
         ↓
 统一：canghe-post-to-wechat
@@ -56,6 +57,26 @@ references/layouts/guangyu-online.md
 ```
 
 原始 HTML、图片、视频和 ZIP 不进入仓库。layout profile 只回答“怎么排”，不回答“怎么写”，也不是医学事实来源。
+
+此外，已把独立 image-gallery 的公众号样式库接入为稳定 ID 契约：
+
+```text
+references/layouts/wechat-component-library.md
+```
+
+用户可以直接指定如 `顶部关注-02 + 导语-01 + 标题-02 + 正文-02 + 参考文献-01 + 结尾-01`。此时 ID 是明确排版约束，不再由 formatter 自由替换。
+
+## 医荟她健康品牌资产与封面
+
+目标品牌画像：
+
+```text
+references/brands/yihui-she-health.md
+```
+
+已正式入库的品牌图片由独立 `image-gallery` 管理，本 Skill 只记录稳定路径与使用边界。当前图片组件 `图片-01` ～ `图片-06` 对应 4 个 Logo 候选方案和马年横/竖版 KV；候选 Logo 在用户明确选定前，不自动认定唯一主 Logo。
+
+公众号封面默认比例为 **2.35:1**，除非用户另有要求。
 
 ## 医学 Figure
 
@@ -162,4 +183,4 @@ xiaohu README 声明 MIT，但当前仓库没有独立 `LICENSE` 文件且 GitHu
 
 原始医学 ZIP/PPT/PDF、公众号 HTML/图片/视频、头像、Logo、内部培训材料、未公开研究、患者资料和运行时文章都不进入公共仓库。
 
-本 Skill 保留领域定义、医学约束、Figure 设计/插入/本地化规则、布局画像、小型可测试品牌适配器和 upstream 编排；通用写作仍由 `content-research-writer` 负责，微信 formatter/publisher 仍优先复用现有 upstream。
+本 Skill 保留领域定义、医学约束、Figure 设计/插入/本地化规则、布局画像、公众号稳定组件 ID 契约、医荟她健康品牌资产路径与封面规则、小型可测试品牌适配器和 upstream 编排；通用写作仍由 `content-research-writer` 负责，微信 formatter/publisher 仍优先复用现有 upstream。

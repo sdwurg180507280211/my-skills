@@ -11,7 +11,7 @@ description: 为“医荟她健康”医学公众号提供女性与宫颈健康�
 
 - 医学写作或事实编辑：读取 [领域方向](references/domains/cervical-health.md) 和 [医学约束](references/medical-constraints.md)。ZIP/PPT 定义内容方向或提供当次来源，不定义写作模板。
 - 医荟她成品：读取 [品牌画像](references/brands/yihui-she-health.md)。已有文章仅排版时保留正文事实与引用。
-- HTML 排版：读取 [医荟她文章样式](references/layouts/yihui-article-style.md)，默认采用用户喜欢的 HPV 长文的字体、克制标题和科学图节奏。
+- HTML 排版：读取 [医荟她文章样式](references/layouts/yihui-article-style.md)，默认采用用户喜欢的 HPV 长文的字体、克制标题和科学图节奏；遵守其中的段落疏密偏好。用户指定样稿时按样稿核对组件，不能把基础 CSS 当作完整复刻。
 - 原始医学资料、样本 HTML、图片和运行时文章留在用户工作目录，不提交公共仓库。
 
 用户当次明确要求优先于默认风格。其他账号不能自动继承医荟她 Logo、品牌名称或渠道能力。

@@ -1,0 +1,18 @@
+/* 小团子Java：仅提供视觉参数，交给苍何原版渲染器加载。 */
+#output { max-width: 720px; margin: 0 auto; color: #333b45; }
+.container { font-size: 16px; line-height: 1.85; }
+.container p { margin: 0 0 18px; line-height: 1.85; letter-spacing: .3px; overflow-wrap: anywhere; }
+.container h1 { padding: 0; margin: 8px 0 20px; font-size: 26px; line-height: 1.45; color: #1a2738; }
+.container h2 { margin: 30px 0 14px; padding: 0 0 8px; border-bottom: 1px solid #dbe3eb; font-size: 18px; line-height: 1.55; color: #244875; background: none; box-shadow: none; }
+.container strong { color: #1a3658; }
+.container blockquote { margin: 20px 0 24px; padding: 14px 18px; border: 0; border-left: 3px solid #2563eb; background: #f5f8fc; font-style: normal; }
+.container blockquote p { margin: 0; font-size: 14px; }
+/* 苍何 render.ts 在 li 文本中生成序号/圆点，避免叠加浏览器原生标记。 */
+.container ol, .container ul { margin: 16px 0 22px; padding-left: 8px; list-style-type: none; }
+.container li { margin: 0 0 12px; line-height: 1.85; }
+.container figure { margin: 10px 0 18px; }
+.container img { display: block; width: 100%; max-width: 100%; height: auto; margin: 0; border-radius: 4px; box-sizing: border-box; }
+.container .sources { font-size: 12px; color: #67727f; }
+.container .sources p { margin-bottom: 12px; font-size: 12px; line-height: 1.75; letter-spacing: .1px; overflow-wrap: anywhere; }
+.container a { color: #2563eb; overflow-wrap: anywhere; }
+@media (max-width: 600px) { body { padding: 18px 16px !important; } }

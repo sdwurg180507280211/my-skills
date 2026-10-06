@@ -11,11 +11,13 @@
 | [`git-history-cleanup`](skills/git-history-cleanup) | Development | 在最终 Tree 不变的前提下安全压缩、清理并重写 Git 历史 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | 命令行访问受阻时探测并应用本地代理 |
+| [`openmaic`](skills/openmaic) | Utility | OpenMAIC 互动课堂的配置、生成、启动方式和 SDK 二次开发指导 |
 | [`wechat-account-bookmarks`](skills/wechat-account-bookmarks) | Utility | 微信公众号 → Edge / Chrome 主页或文章书签 |
 | [`wechat-android-shortcuts`](skills/wechat-android-shortcuts) | Utility | ADB 驱动微信官方“添加到桌面”，创建/检查 Android 公众号或小程序快捷方式 |
 | [`wechat-ios-shortcuts`](skills/wechat-ios-shortcuts) | Utility | 名称 + URL → Apple Web Clip `.mobileconfig` → iPhone/iPad 主屏幕图标 |
 | [`content-research-writer`](skills/content-research-writer) | Utility | 上游 vendored：研究 → 大纲 → 引用 → 高质量文章；用于补足插件市场不可达的主 Writer |
 | [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医荟她健康的医学约束、品牌与文章样式；复用现成 Writer 和苍何配图/排版/发布 |
+| [`wechat-tech-writer`](skills/wechat-tech-writer) | Utility | 小团子Java的软件推荐、工具入门和 AI 实用教程偏好；复用现成 Writer、具体图库案例及苍何排版/发布 |
 | [`wechat-ai-model-writer`](skills/wechat-ai-model-writer) | Utility | AI 模型/价格/免费额度/高性价比渠道情报 → 日报/重大更新/周报选题 → 价格与渠道核验 → 科技情报刊式公众号排版 |
 
 ## 安装
@@ -42,7 +44,7 @@ Codex 安装见 [医学 Skill 的宿主安装说明](skills/wechat-medical-write
 /plugin install utility-skills@my-skills
 ```
 
-`utility-skills` 会同时安装 `content-research-writer`、`wechat-medical-writer` 与 `wechat-ai-model-writer`。
+`utility-skills` 会同时安装 `content-research-writer`、`wechat-medical-writer`、`wechat-tech-writer` 与 `wechat-ai-model-writer`。
 
 ### 手动安装单个 Skill
 
@@ -50,7 +52,7 @@ Codex 安装见 [医学 Skill 的宿主安装说明](skills/wechat-medical-write
 cp -R skills/<skill-name> ~/.claude/skills/
 ```
 
-如果手动安装 `wechat-medical-writer` 或 `wechat-ai-model-writer`，同时复制 `skills/content-research-writer/`。
+如果手动安装 `wechat-medical-writer`、`wechat-tech-writer` 或 `wechat-ai-model-writer`，同时复制 `skills/content-research-writer/`。保留完整 Skill 目录，不能只复制 `SKILL.md`。
 
 ### 公众号下游（按需）
 
@@ -72,6 +74,14 @@ pip3 install markdown requests
 ```
 
 本项目只使用它的 formatter；封面、配图和最终草稿箱发布仍优先走苍何。xiaohu README 声明 MIT，但仓库当前没有独立 `LICENSE` 文件，因此本仓库不 vendor 它。
+
+### 小团子Java：软件推荐与实用技术图文
+
+使用 `wechat-tech-writer`，不把通用软件推荐塞进医学 Skill 或 AI 模型省钱日报。它只维护账号口吻、软件事实边界、具体图库案例的使用规则、图文交付检查和简洁技术 CSS；研究写作及配图、排版、发布继续使用成熟上游。
+
+Codex 中可将 `skills/wechat-tech-writer/` 链接到 `~/.agents/skills/wechat-tech-writer`，并安装 `content-research-writer`；先确认目标不存在，不覆盖旧安装。需要 HTML 时同时安装苍何渲染器及其运行依赖，按技术 Skill 中的 `MD_THEME_DIR` 说明加载完整目录内的 `assets/themes/xiaotuanzi.css`。
+
+固定图库链接优先读取对应 `/image-gallery/api/recipes/<id>`；封面和正文图分别沿用所选具体案例，保留整体设计、替换当篇内容。图数和章节数不固定，封面独立核对。原稿、方案快照、图片、提示词及账号凭据留在文章私有目录，不进入公共仓库。
 
 ### AI 模型省钱公众号
 
@@ -128,11 +138,13 @@ my-skills/
 │   ├── git-history-cleanup/
 │   ├── github-aliyun-deploy/
 │   ├── github-kb/
+│   ├── openmaic/
 │   ├── spec-mode/
 │   ├── wechat-account-bookmarks/
 │   ├── wechat-android-shortcuts/
 │   ├── wechat-ios-shortcuts/
 │   ├── wechat-ai-model-writer/
+│   ├── wechat-tech-writer/
 │   └── wechat-medical-writer/
 ├── CHANGELOG.md
 ├── CLAUDE.md
@@ -157,6 +169,7 @@ GitHub Actions 会检查：Skill/frontmatter/Marketplace 结构、vendored upstr
 - 公众号样本可在运行时用于提炼视觉画像，但画像不能成为医学事实来源，也不能把单篇样稿固化成所有文章的写作模板。
 - `wechat-medical-writer` 保持医学与医荟她品牌适配：现成 Writer 使用原生流程，`content-research-writer` 为待医学对照评测的默认候选；常规排版与发布用苍何，复杂组件按需用 xiaohu；新图保存本地文件，发布时核对图片上传与实际草稿。
 - `wechat-ai-model-writer` 只维护模型情报特有的选题路由、价格/免费额度/渠道风险约束和科技媒体排版；不复制通用研究写作，不把每日采集条目机械变成固定 5+2 新闻稿。
+- `wechat-tech-writer` 只维护小团子Java的实用软件图文偏好；推荐不冒充实测，扩图不固定每段一张，指定案例不拆风格与布局。技术号与医学号分开核对品牌和发布配置。
 - 微信浏览器书签、Android 真机自动化、iOS Web Clip 与公众号内容编排保持独立，通过文件/数据契约松耦合。
 
 ## License

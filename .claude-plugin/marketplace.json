@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal collection of reusable Agent and Claude Code skills",
-    "version": "1.12.0"
+    "version": "1.13.0"
   },
   "plugins": [
     {
@@ -40,7 +40,9 @@
         "./skills/wechat-ios-shortcuts",
         "./skills/content-research-writer",
         "./skills/wechat-medical-writer",
-        "./skills/wechat-ai-model-writer"
+        "./skills/wechat-tech-writer",
+        "./skills/wechat-ai-model-writer",
+        "./skills/openmaic"
       ]
     }
   ]

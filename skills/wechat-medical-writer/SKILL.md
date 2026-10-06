@@ -10,11 +10,12 @@ description: 为“医荟她健康”医学公众号提供女性与宫颈健康�
 ## 加载上下文
 
 - 医学写作或事实编辑：读取 [领域方向](references/domains/cervical-health.md) 和 [医学约束](references/medical-constraints.md)。ZIP/PPT 定义内容方向或提供当次来源，不定义写作模板。
+- 需要公众号成品、封面或配图时：先读取 [Image Gallery 风格方案接口](references/layouts/image-gallery-styles.md)。用户给出固定链接时读取该快照，不能用当前默认覆盖；没有指定方案时才读库默认。将排版、封面、正文三个案例传给对应流程，保留正文所选案例的整体设计，不自行拆分画风和布局。
 - 医荟她成品：读取 [品牌画像](references/brands/yihui-she-health.md)。已有文章仅排版时保留正文事实与引用。
 - HTML 排版：读取 [医荟她文章样式](references/layouts/yihui-article-style.md)，默认采用用户喜欢的 HPV 长文的字体、克制标题和科学图节奏；遵守其中的段落疏密偏好。用户指定样稿时按样稿核对组件，不能把基础 CSS 当作完整复刻。
 - 原始医学资料、样本 HTML、图片和运行时文章留在用户工作目录，不提交公共仓库。
 
-用户当次明确要求优先于默认风格。其他账号不能自动继承医荟她 Logo、品牌名称或渠道能力。
+用户当次明确要求 > 指定快照或网页已保存的本次选择 > 网页当前默认 > 本技能原有默认。风格方案只改变视觉与排版，不改变医学证据约束。其他账号不能自动继承医荟她 Logo、品牌名称或渠道能力。
 
 ## 写作交给现成 Writer
 
@@ -34,7 +35,7 @@ description: 为“医荟她健康”医学公众号提供女性与宫颈健康�
 |---|---|
 | 普通概念插图 | `canghe-article-illustrator`，叠加医学约束 |
 | 统计图、多面板科学图 | [医学 Figure 约束](references/medical-figure-design.md)，用可控绘图工具锁定数据与文字 |
-| 常规公众号 HTML | `canghe-markdown-to-html`，按医荟她文章样式中的已验证入口加载外部 `yihui.css` |
+| 常规公众号 HTML | `canghe-markdown-to-html`，按医荟她文章样式中的已验证入口加载外部 `yihui.css`；方案有明确 CSS 时追加其视觉覆盖并内联化，组件按方案实际定义插入 |
 | 用户指定样式 ID | [组件库外部接口](references/layouts/wechat-component-library.md)，按实际版本取组件 |
 | 访谈 / Q&A 复杂布局 | 外部 `xiaohu-wechat-format`，仅用 formatter |
 | 明确要求光愈式头像访谈 | [光愈参考](references/layouts/guangyu-online.md)；上游缺头像时才用现有窄适配器，使用医荟她与真实专家素材 |
@@ -46,7 +47,7 @@ description: 为“医荟她健康”医学公众号提供女性与宫颈健康�
 
 ## 成品与发布检查
 
-交付前按 [医荟她样式基准](references/layouts/yihui-article-style.md) 检查字体、图文衔接、引用和品牌。封面默认 2.35:1。微信有独立标题字段，正文不重复放文章 H1。
+交付前按已读取方案检查三类风格；未被方案覆盖的项目按 [医荟她样式基准](references/layouts/yihui-article-style.md) 检查字体、图文衔接、引用和品牌。封面默认 2.35:1。微信有独立标题字段，正文不重复放文章 H1。
 
 发布前完整读取已安装发布器的说明与适用图片输入方式。审计版本的限制和证据见 [上游文档](references/upstreams.md#发布器已知限制)。
 

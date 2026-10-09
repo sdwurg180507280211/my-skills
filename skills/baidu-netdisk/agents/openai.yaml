@@ -1,0 +1,4 @@
+interface:
+  display_name: "百度网盘"
+  short_description: "通过现有 MCP 配置检索百度网盘、整理文件、生成分享及保存文本"
+  default_prompt: "使用 $baidu-netdisk 查找我百度网盘中的文件，并按实际工具能力完成操作。"

@@ -9,8 +9,15 @@
 | [`spec-mode`](skills/spec-mode) | Development | 规格驱动开发：需求 → 设计 → 实现 |
 | [`github-kb`](skills/github-kb) | Development | 本地 GitHub 仓库知识库与检索 |
 | [`git-history-cleanup`](skills/git-history-cleanup) | Development | 在最终 Tree 不变的前提下安全压缩、清理并重写 Git 历史 |
+| [`chrome-devtools`](skills/chrome-devtools) | Development | 已连接 Chrome DevTools MCP 时的网页打开、检查、测试与截图规范；工具缺失时如实报告，不静默换浏览器 |
+| [`codex-dream-skin-fix`](skills/codex-dream-skin-fix) | Development | 排查 Codex Dream Skin 主题不生效：CDP 端口错位诊断与让 Dream Skin 重新持有会话 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连与链式代理、Claude 固定出口和登录回调维护 |
+| [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
+| [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
+| [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
+| [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：导出 PNG、PPTX↔PPTM 转换、批量改文字/字体/颜色、生成 WPS 宏 |
+| [`meeting-reimbursement-audit`](skills/meeting-reimbursement-audit) | Utility | 会议核销参会明细与正脸截图审核：在线时长 ≥20 分钟、人数 ≥10 人、逐对名单重合率，只总结问题 |
 | [`openmaic`](skills/openmaic) | Utility | OpenMAIC 互动课堂的配置、生成、启动方式和 SDK 二次开发指导 |
 | [`wechat-account-bookmarks`](skills/wechat-account-bookmarks) | Utility | 微信公众号 → Edge / Chrome 主页或文章书签 |
 | [`wechat-android-shortcuts`](skills/wechat-android-shortcuts) | Utility | ADB 驱动微信官方“添加到桌面”，创建/检查 Android 公众号或小程序快捷方式 |
@@ -21,6 +28,17 @@
 | [`wechat-ai-model-writer`](skills/wechat-ai-model-writer) | Utility | AI 模型/价格/免费额度/高性价比渠道情报 → 日报/重大更新/周报选题 → 价格与渠道核验 → 科技情报刊式公众号排版 |
 
 ## 安装
+
+### 本机：仓库即单一来源（软链接）
+
+本机各 AI 工具不保存 skill 副本，而是软链接回本仓库，改完立即全部生效：
+
+```bash
+python3 scripts/link_skills.py            # 只读检查：missing / copy-same / copy-diff / local-only
+python3 scripts/link_skills.py --apply    # 创建链接；内容相同的旧副本先移到 ~/.skill-backups/<时间戳>/
+```
+
+默认目标为 `~/.claude/skills`（Claude Code）、`~/.agents/skills`（Codex 等）和 `~/.workbuddy/skills`（WorkBuddy）；`~/.codex/skills` 中与仓库同名的旧副本会移入备份。与仓库内容不同的副本和指向别处的链接默认跳过，核对差异后再加 `--force`。`local-only` 只是提示该工具里还有仓库外的 skill（第三方或尚未收进来）。
 
 ### 推荐：Skills CLI
 
@@ -53,6 +71,17 @@ cp -R skills/<skill-name> ~/.claude/skills/
 ```
 
 如果手动安装 `wechat-medical-writer`、`wechat-tech-writer` 或 `wechat-ai-model-writer`，同时复制 `skills/content-research-writer/`。保留完整 Skill 目录，不能只复制 `SKILL.md`。
+
+### 百度网盘
+
+`baidu-netdisk` 优先使用宿主已连接的 MCP。当前会话没有该工具时，可以用技能内 `scripts/netdisk_mcp.py` 经官方 MCP Python SDK 直接读取本机 WorkBuddy / CodeBuddy 的 `baidu-netdisk` 配置，先列出真实 schema，再调用。
+
+```bash
+uv run skills/baidu-netdisk/scripts/netdisk_mcp.py config
+uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
+```
+
+需要 Python 3.10+；`uv run` 自动处理脚本声明的 MCP 依赖。`config` 是离线检查，`tools` 才验证连接；token 不写入技能、Marketplace 或命令行。技能安装不等于宿主已注册 MCP，也不自动修改 Codex 配置。操作范围及当前下载/本地上传/删除能力限制见技能入口。
 
 ### 网络与 Claude 专用出口
 
@@ -139,13 +168,21 @@ skills/wechat-medical-writer/scripts/enhance_guangyu_dialogue.py
 my-skills/
 ├── .claude-plugin/marketplace.json
 ├── .github/workflows/validate-skills.yml
-├── scripts/validate_skills.py
+├── scripts/
+│   ├── link_skills.py
+│   └── validate_skills.py
 ├── skills/
+│   ├── baidu-netdisk/
+│   ├── baidu-netdisk-syncspace-recovery/
 │   ├── china-proxy/
+│   ├── chrome-devtools/
+│   ├── codex-dream-skin-fix/
 │   ├── content-research-writer/
 │   ├── git-history-cleanup/
 │   ├── github-aliyun-deploy/
 │   ├── github-kb/
+│   ├── google-flow-story-video/
+│   ├── meeting-reimbursement-audit/
 │   ├── openmaic/
 │   ├── spec-mode/
 │   ├── wechat-account-bookmarks/
@@ -153,7 +190,8 @@ my-skills/
 │   ├── wechat-ios-shortcuts/
 │   ├── wechat-ai-model-writer/
 │   ├── wechat-tech-writer/
-│   └── wechat-medical-writer/
+│   ├── wechat-medical-writer/
+│   └── wps-presentation-batch/
 ├── CHANGELOG.md
 ├── CLAUDE.md
 ├── CONTRIBUTING.md
@@ -168,6 +206,12 @@ python3 scripts/validate_skills.py
 ```
 
 GitHub Actions 会检查：Skill/frontmatter/Marketplace 结构、vendored upstream 完整性，以及 WeChat bookmarks、Android shortcuts、iOS shortcuts 和 Guangyu HTML adapter 的编译与离线测试。
+
+会议核销审核技能另有合成数据离线测试：
+
+```bash
+python3 -B -m unittest discover -s skills/meeting-reimbursement-audit/tests -v
+```
 
 ## 维护原则
 

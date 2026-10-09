@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased — 本机 skill 收拢与软链接
+
+### Added
+- `scripts/link_skills.py`：仓库作为本机唯一来源，把 `skills/*` 软链接到 `~/.claude/skills`、`~/.agents/skills`、`~/.workbuddy/skills`；默认只读检查，`--apply` 前把旧副本移入 `~/.skill-backups/`，内容不同的副本需 `--force`。附临时目录离线测试。
+- 从本机工具目录收回 4 个自沉淀 skill：`codex-dream-skin-fix`、`baidu-netdisk-syncspace-recovery`（WorkBuddy），`google-flow-story-video`、`wps-presentation-batch`（Codex）。`google-flow-story-video` 的个人项目个案含私有 Flow 链接与本地路径，只留本机并加入 `.gitignore`。
+- 重新收回 `chrome-devtools`（以 `~/.agents` 中 2026-09 的版本为准），同时给出 Codex 与 Claude Code 的注册命令；只是 MCP 使用规范，不安装 MCP。
+- `china-proxy/scripts/detect_network.py`：收回 Codex 版本的只读 TUN 检测器并接入文档，附合成配置离线测试。
+
+### Changed
+- `github-aliyun-deploy` 合并 WorkBuddy 版的同机多环境（develop→测试/main→生产）、webroot + SAN 证书 HTTPS 落地与踩坑 D–J；服务器公网 IP 改为占位符。
+- `codex-dream-skin-fix` 的状态文件路径改为按当前用户 home 解析。
+- `hatch-pet`、`codex-theme-from-image` 等第三方 skill 不复制进仓库。
+
+## Unreleased — 会议核销资料审核
+
+### Fixed
+- 参会人员匹配更正为用户确认的“用户ID + 姓名”，不再按“姓名 + 医院 + 科室”推断重合；同名不同ID不重复，医院科室仅用于展示，ID/姓名缺失或冲突需核查。同步修正脚本并新增离线回归测试，不保存真实参会记录。
+
+### Added
+- `meeting-reimbursement-audit`：沉淀报告在线时长 ≥20 分钟、去重合格人数 ≥10 人、完整参会名单逐对重合率与课前/课中正脸截图的审核口径；默认仅输出不合格项，参会明细与截图分表。
+- 新增只读 `.xlsx` 核对脚本与合成数据离线测试，固定等号边界、不扣会前时间、组合去重、全名单比较、双分母披露和缺值待核实逻辑。截图仍需查看原图判断，不上传网站、不修改证明原件、不保存私有名单或图片。
+
+### Changed
+- README 和 Marketplace 登记新技能；保留既有未提交改动，不发布新版本或修改已安装技能。
+
 ## Unreleased — china-proxy 路径与固定出口维护
 
 ### Changed
@@ -7,6 +32,15 @@
 - 沉淀 Clash 国内域名/cncidr 分流、DNS 与规则顺序、原生链式代理、订阅继承、持久化、断线与整客户端退出的独立验证步骤。
 - 整理 Claude 浏览器/CLI 共享出口守护、官方认证、模型选择、localhost OAuth 回调修复、桌面 App 保护范围及恢复方法。参数化端口和路径，不提交个人凭据、出口身份或运行副本。
 - README 同步现有技能的用途与参考入口；保留原名称和 Marketplace 注册，不修改本机正在运行的代理或已安装 skill。
+
+## 2026-10-09 — v1.14.0
+
+### Added
+- `baidu-netdisk`：新增百度网盘 MCP 操作技能，按真实 schema 路由浏览、文件名/正文/OCR/语义检索、整理、分享、文本保存和 URL 转存；明确现有连接器的下载、本地二进制上传和删除能力边界。
+- `scripts/netdisk_mcp.py`：使用官方 MCP Python SDK，从本机已启用的 WorkBuddy / CodeBuddy 配置读取认证，支持脱敏配置检查、工具发现和 JSON 参数调用；默认总超时 45 秒，不自动切换账号或重试写操作。
+
+### Changed
+- Marketplace 的 `utility-skills` 增加 `baidu-netdisk`，版本更新为 `1.14.0`；同步 README。私有认证和服务响应不进入仓库。
 
 ## 2026-10-06 — v1.13.0
 

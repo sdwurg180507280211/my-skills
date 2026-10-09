@@ -1,0 +1,4 @@
+interface:
+  display_name: "会议核销资料审核"
+  short_description: "核对线上会议人数、参会名单重合率与正脸截图，仅汇总不合格项"
+  default_prompt: "使用 $meeting-reimbursement-audit 审核我提供的会议资料目录，按报告在线时长统计，参会明细与截图问题分两个表格，只总结不合格项。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Google Flow 人物故事短片"
+  short_description: "复用角色参考图、电影分镜与中文配音经验，制作并整理 Google Flow 人物短片"
+  default_prompt: "使用 $google-flow-story-video，按已沉淀的角色和配音流程制作并整理一部人物故事短片。"

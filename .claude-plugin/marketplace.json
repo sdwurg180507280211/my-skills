@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Personal collection of reusable Agent and Claude Code skills",
-    "version": "1.13.0"
+    "version": "1.14.0"
   },
   "plugins": [
     {
@@ -16,7 +16,9 @@
       "skills": [
         "./skills/spec-mode",
         "./skills/github-kb",
-        "./skills/git-history-cleanup"
+        "./skills/git-history-cleanup",
+        "./skills/codex-dream-skin-fix",
+        "./skills/chrome-devtools"
       ]
     },
     {
@@ -42,7 +44,12 @@
         "./skills/wechat-medical-writer",
         "./skills/wechat-tech-writer",
         "./skills/wechat-ai-model-writer",
-        "./skills/openmaic"
+        "./skills/openmaic",
+        "./skills/baidu-netdisk",
+        "./skills/meeting-reimbursement-audit",
+        "./skills/baidu-netdisk-syncspace-recovery",
+        "./skills/google-flow-story-video",
+        "./skills/wps-presentation-batch"
       ]
     }
   ]

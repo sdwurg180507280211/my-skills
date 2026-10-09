@@ -32,3 +32,6 @@ skills/wechat-medical-writer/sources/
 
 # Packaged skill archives
 *.skill
+
+# Personal project case notes (kept locally, linked into installed skills)
+skills/google-flow-story-video/references/returning-lamp.md

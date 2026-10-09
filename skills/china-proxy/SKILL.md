@@ -24,7 +24,9 @@ description: Diagnose network paths under TUN or explicit proxy mode, troublesho
 - **模式不明确**：结合正在运行的内核、当前生效配置、系统代理和目标路由确认。看到 `utun` 或 localhost 监听端口本身不足以认定路径。
 - **遗留覆盖**：仅为当前任务移除影响请求的旧环境变量或工具覆盖；不擅自永久修改全局 Git/npm 配置、切换系统网络模式或注销账号。
 
-仓库现有 `scripts/detect_proxy.py` 只探测常见端口的 TCP 连接。它返回的 `available` 仅表示端口可连接，不确认 HTTP/SOCKS 协议、实际出口或 TUN；阴性结果也不表示无法联网。不要用它决定是否关闭 TUN。
+模式不明或用户要求核实时，在本技能目录运行 `python3 scripts/detect_network.py`。它只读检查 Clash/Mihomo 内核进程、Clash Verge 界面/生成配置、macOS 系统代理和探测 IP 的本地路由，不联网、不输出订阅或凭据。`mode: tun` 表示配置、进程与 `utun` 路由互相印证；`tun_configured_unconfirmed` 或 `unknown` 只是证据不足，不能报告为 TUN 已关闭。它不查询控制器，具体目标的分流仍需单独验证。
+
+`scripts/detect_proxy.py` 只探测常见端口的 TCP 连接。它返回的 `available` 仅表示端口可连接，不确认 HTTP/SOCKS 协议、实际出口或 TUN；阴性结果也不表示无法联网。不要用它决定是否关闭 TUN。
 
 ## 修改与验证流程
 

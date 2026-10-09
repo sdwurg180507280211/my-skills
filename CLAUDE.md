@@ -17,6 +17,7 @@
 4. 新增或删除 Skill 时同步更新 `README.md`、`.claude-plugin/marketplace.json` 和 `CHANGELOG.md`。
 5. 提交前运行 `python3 scripts/validate_skills.py`，并运行对应 Skill 的测试。
 6. 默认不复制大型通用 upstream；若 upstream 实际安装不可达、许可证明确允许且是当前链路必需，可保留受控 vendored 副本，但必须附许可证、固定版本、来源说明和完整性锁，避免长期魔改分叉。
+7. 本仓库是本机自有 Skill 的唯一来源（规则见 `~/.ai-global/SKILLS.md`）。各 AI 工具目录只放指向 `skills/<name>` 的软链接；新增 Skill 后运行 `python3 scripts/link_skills.py --apply`，不要在工具目录里另建副本。
 
 ## WeChat Skills
 

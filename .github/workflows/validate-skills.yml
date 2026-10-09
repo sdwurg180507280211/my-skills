@@ -18,6 +18,16 @@ jobs:
           python-version: "3.12"
       - name: Validate repository structure
         run: python3 scripts/validate_skills.py
+      - name: Run skill link script offline tests
+        run: python3 -B -m unittest discover -s scripts/tests -v
+      - name: Run china-proxy detector offline tests
+        run: python3 -B -m unittest discover -s skills/china-proxy/tests -v
+      - name: Install meeting audit read-only dependency
+        run: pip install -r skills/meeting-reimbursement-audit/requirements.txt
+      - name: Run meeting audit synthetic offline tests
+        run: python3 -B -m unittest discover -s skills/meeting-reimbursement-audit/tests -v
+      - name: Run Baidu Netdisk offline configuration tests
+        run: python3 -B -m unittest discover -s skills/baidu-netdisk/tests -v
       - name: Install WeChat bookmark skill dependencies
         run: pip install -r skills/wechat-account-bookmarks/requirements.txt
       - name: Compile WeChat bookmark scripts

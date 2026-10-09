@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — china-proxy 路径与固定出口维护
+
+### Changed
+- 更新现有 `china-proxy`：TUN 优先按系统路由验证，显式代理按当前任务作用域使用；标明端口探测器的结果不能证明 TUN、协议或出口。
+- 沉淀 Clash 国内域名/cncidr 分流、DNS 与规则顺序、原生链式代理、订阅继承、持久化、断线与整客户端退出的独立验证步骤。
+- 整理 Claude 浏览器/CLI 共享出口守护、官方认证、模型选择、localhost OAuth 回调修复、桌面 App 保护范围及恢复方法。参数化端口和路径，不提交个人凭据、出口身份或运行副本。
+- README 同步现有技能的用途与参考入口；保留原名称和 Marketplace 注册，不修改本机正在运行的代理或已安装 skill。
+
 ## 2026-10-06 — v1.13.0
 
 ### Added

@@ -10,7 +10,7 @@
 | [`github-kb`](skills/github-kb) | Development | 本地 GitHub 仓库知识库与检索 |
 | [`git-history-cleanup`](skills/git-history-cleanup) | Development | 在最终 Tree 不变的前提下安全压缩、清理并重写 Git 历史 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
-| [`china-proxy`](skills/china-proxy) | Infrastructure | 命令行访问受阻时探测并应用本地代理 |
+| [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连与链式代理、Claude 固定出口和登录回调维护 |
 | [`openmaic`](skills/openmaic) | Utility | OpenMAIC 互动课堂的配置、生成、启动方式和 SDK 二次开发指导 |
 | [`wechat-account-bookmarks`](skills/wechat-account-bookmarks) | Utility | 微信公众号 → Edge / Chrome 主页或文章书签 |
 | [`wechat-android-shortcuts`](skills/wechat-android-shortcuts) | Utility | ADB 驱动微信官方“添加到桌面”，创建/检查 Android 公众号或小程序快捷方式 |
@@ -53,6 +53,14 @@ cp -R skills/<skill-name> ~/.claude/skills/
 ```
 
 如果手动安装 `wechat-medical-writer`、`wechat-tech-writer` 或 `wechat-ai-model-writer`，同时复制 `skills/content-research-writer/`。保留完整 Skill 目录，不能只复制 `SKILL.md`。
+
+### 网络与 Claude 专用出口
+
+`china-proxy` 先区分 TUN、macOS 系统代理和进程代理。已有 TUN 时不默认叠加显式 HTTP 代理；Clash 原生链式配置由用户可视化管理，专用出口守护仅在明确要求时维护，不自动换落地或前置。
+
+按任务读取 [网络模式与检测](skills/china-proxy/references/network-checks.md)、[Clash 分流与链式代理](skills/china-proxy/references/clash-routing-and-chain.md)、[Claude 浏览器/CLI 专用出口](skills/china-proxy/references/claude-fixed-exit.md)。包括国内域名/cncidr 规则来源、DNS、订阅继承、故障与退出测试、独立浏览器、本机 OAuth 回调、官方认证和恢复范围。
+
+仓库只保存参数化维护指南，不包含个人出口 IP、节点密码、订阅密钥、浏览器 profile、账号历史或正在运行的守护副本。阅读/安装 skill 不自动安装守护、不改变网络；CLI 已受保护不等于 Claude App 也已受保护，也不构成账号免封保证。
 
 ### 公众号下游（按需）
 

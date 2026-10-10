@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — 图库登录与技术号默认配图风格
+
+### Changed
+- `wechat-tech-writer` 与 `wechat-medical-writer` 的图库读取说明改为“需登录”：匿名请求返回 401，本机用图库项目的 `read-wechat-recipe.py` 读取，不把密码写进链接或参数；无法登录时使用用户提供的完整方案文件。
+- 移除公开仓库中的图库服务器真实 IP，改为 `<图库站点>` 占位，地址以用户给出的链接为准。
+- `wechat-tech-writer` 未指定方案时，正文图与封面默认统一使用内置案例 `canghe-article-editorial`（杂志信息图），封面改为约 2.35:1 并重留标题区；不改写医学号在用的图库默认方案。
+
 ## Unreleased — 本机 skill 收拢与软链接
 
 ### Added

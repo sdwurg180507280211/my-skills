@@ -25,7 +25,9 @@ description: 为“小团子Java”技术公众号提供软件推荐、工具入
 
 用户给 Image Gallery 固定链接或完整方案时，实际读取该方案并保存在文章工作目录；不每个步骤重新读取当前默认覆盖选择。方案只提供视觉，不提供软件事实或发布授权。
 
-- 固定快照入口是 `http://39.102.212.37/image-gallery/api/recipes/<id>`，匿名 GET 返回方案本体。没有指定方案、需要读取库默认时才使用 `/image-gallery/api/recipe`；它不能代表浏览器尚未保存的临时选择。
+用户没有指定方案时，技术号默认正文图和封面都使用内置案例 `canghe-article-editorial`（杂志信息图）：封面改为约 2.35:1 并重新留出中文标题区。该案例可直接从图库项目的 `wechat/styles.json` 按 ID 读取，样图在 `assets/style-previews/`，无需方案链接；不要改写图库默认方案，那是医学号在用的。
+
+- 固定快照形如 `<图库站点>/image-gallery/api/recipes/<id>`，图库站点地址以用户给出的链接为准。图库及接口已要求登录，匿名请求会返回 401；在有登录文件的本机用图库项目的 `scripts/read-wechat-recipe.py --url <链接> --output <文章目录>/wechat-style-recipe.json` 读取，不把密码写进链接、命令参数或文章目录。无法登录时请用户提供完整方案文件。没有指定方案、需要读取库默认时才使用 `/image-gallery/api/recipe`；它不能代表浏览器尚未保存的临时选择。
 - `styles.layout` 控制正文排版，读取 `instructions`、`css` 及存在时的 `template`、`componentDefinitions`，不把基础 CSS 当完整模板。若方案仍是医荟她模板，不自动迁移其品牌；用户已确认技术号用简洁排版时，仅沿用指定封面和正文案例。
 - `styles.cover` 与 `styles.illustration` 分别控制封面、正文图。读取 `instructions`、可选 `prompt.text` 和 `preview`，保留所选具体案例的整体构图、布局、配色、材质、线条和文字层级，只替换本篇内容；不再自行拆成“画风＋另一种布局”混搭。
 - 提示词已说明清楚时直接沿用；参考图用于明确复刻案例或核对整体设计，不另起炉灶。支持参考图输入时，将所选样图传给生图工具。`preview` 相对路径以站点的 `/image-gallery/` 为基准解析，不相对 `/api/recipes/<id>` 拼接。

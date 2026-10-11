@@ -23,7 +23,7 @@
 | [`wechat-android-shortcuts`](skills/wechat-android-shortcuts) | Utility | ADB 驱动微信官方“添加到桌面”，创建/检查 Android 公众号或小程序快捷方式 |
 | [`wechat-ios-shortcuts`](skills/wechat-ios-shortcuts) | Utility | 名称 + URL → Apple Web Clip `.mobileconfig` → iPhone/iPad 主屏幕图标 |
 | [`content-research-writer`](skills/content-research-writer) | Utility | 上游 vendored：研究 → 大纲 → 引用 → 高质量文章；用于补足插件市场不可达的主 Writer |
-| [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医荟她健康的医学约束、品牌与文章样式；复用现成 Writer 和苍何配图/排版/发布 |
+| [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医荟她健康（女性全生命周期健康科普）的医学约束、品牌与文章样式；复用现成 Writer 和苍何配图/排版/发布 |
 | [`wechat-tech-writer`](skills/wechat-tech-writer) | Utility | 小团子Java的软件推荐、工具入门和 AI 实用教程偏好；复用现成 Writer、具体图库案例及苍何排版/发布 |
 | [`wechat-ai-model-writer`](skills/wechat-ai-model-writer) | Utility | AI 模型/价格/免费额度/高性价比渠道情报 → 日报/重大更新/周报选题 → 价格与渠道核验 → 科技情报刊式公众号排版 |
 

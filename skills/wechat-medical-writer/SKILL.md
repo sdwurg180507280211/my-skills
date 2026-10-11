@@ -1,6 +1,6 @@
 ---
 name: wechat-medical-writer
-description: 为“医荟她健康”医学公众号提供女性与宫颈健康领域上下文、医学证据约束和品牌样式，配合现成 Writer、科学图工具及苍何排版发布。用于该账号的主题成稿、已有文章排版和草稿交付；光愈在线仅为视觉参考。
+description: 为“医荟她健康”医学公众号提供女性全生命周期健康（含宫颈健康）领域上下文、医学证据约束和品牌样式，配合现成 Writer、科学图工具及苍何排版发布。用于该账号的主题成稿、已有文章排版和草稿交付；光愈在线仅为视觉参考。
 ---
 
 # 医荟她健康医学公众号适配层
@@ -9,7 +9,7 @@ description: 为“医荟她健康”医学公众号提供女性与宫颈健康�
 
 ## 加载上下文
 
-- 医学写作或事实编辑：读取 [领域方向](references/domains/cervical-health.md) 和 [医学约束](references/medical-constraints.md)。ZIP/PPT 定义内容方向或提供当次来源，不定义写作模板。
+- 医学写作或事实编辑：读取 [女性全生命周期领域](references/domains/womens-lifecycle.md) 和 [医学约束](references/medical-constraints.md)；主题属于 HPV、宫颈癌筛查或宫颈病变时，再读 [宫颈健康细分](references/domains/cervical-health.md)。ZIP/PPT 定义内容方向或提供当次来源，不定义写作模板。
 - 需要公众号成品、封面或配图时：先读取 [Image Gallery 风格方案接口](references/layouts/image-gallery-styles.md)。用户给出固定链接时读取该快照，不能用当前默认覆盖；没有指定方案时才读库默认。将排版、封面、正文三个案例传给对应流程，保留正文所选案例的整体设计，不自行拆分画风和布局。
 - 医荟她成品：读取 [品牌画像](references/brands/yihui-she-health.md)。已有文章仅排版时保留正文事实与引用。
 - HTML 排版：读取 [医荟她文章样式](references/layouts/yihui-article-style.md)，默认采用用户喜欢的 HPV 长文的字体、克制标题和科学图节奏；遵守其中的段落疏密偏好。用户指定样稿时按样稿核对组件，不能把基础 CSS 当作完整复刻。

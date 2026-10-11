@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — 医荟她健康全生命周期定位
+
+### Changed
+- `wechat-medical-writer` 新增 `references/domains/womens-lifecycle.md`，按青春期、育龄期、孕产期、围绝经期与绝经后、老年期及贯穿全程的乳腺、肿瘤筛查、心理与生活方式组织选题；宫颈健康保留为细分领域，仅在相关主题时加载。
+- 品牌画像写入宗旨“聚专业医学力量，为女性提供全生命周期健康知识与服务的媒体平台”，默认读者为普通女性；补充健康宣传日的核对要求与科普范围边界。
+
 ## Unreleased — 图库登录与技术号默认配图风格
 
 ### Changed

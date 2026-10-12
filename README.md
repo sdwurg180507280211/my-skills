@@ -114,7 +114,7 @@ pip3 install markdown requests
 
 ### 小团子Java：软件推荐与实用技术图文
 
-使用 `wechat-tech-writer`，不把通用软件推荐塞进医学 Skill 或 AI 模型省钱日报。它只维护账号口吻、软件事实边界、具体图库案例的使用规则、图文交付检查和简洁技术 CSS；研究写作及配图、排版、发布继续使用成熟上游。
+使用 `wechat-tech-writer`，不把通用软件推荐塞进医学 Skill 或 AI 模型省钱日报。它只维护账号口吻、软件事实边界、具体图库案例的使用规则（默认排版为图库模板 `layout-xiaotuanzi`）、图文交付检查和作为退回方案的简洁技术 CSS；研究写作及配图、排版、发布继续使用成熟上游。
 
 Codex 中可将 `skills/wechat-tech-writer/` 链接到 `~/.agents/skills/wechat-tech-writer`，并安装 `content-research-writer`；先确认目标不存在，不覆盖旧安装。需要 HTML 时同时安装苍何渲染器及其运行依赖，按技术 Skill 中的 `MD_THEME_DIR` 说明加载完整目录内的 `assets/themes/xiaotuanzi.css`。
 

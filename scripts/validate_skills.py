@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -22,6 +23,18 @@ FORBIDDEN_PARTS = {
 }
 FORBIDDEN_SUFFIXES = {".pyc", ".pyo"}
 GIT_BLOB_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def repository_files() -> list[Path]:
+    """Tracked files plus untracked ones Git would add; ignored caches stay local."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            capture_output=True, check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return list(ROOT.rglob("*"))
+    return [ROOT / rel for rel in out.decode().split("\0") if rel]
 
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
@@ -132,7 +145,7 @@ def main() -> int:
             errors.append(f"duplicate skill name: {name}")
         names.add(name)
 
-    for path in ROOT.rglob("*"):
+    for path in repository_files():
         rel = path.relative_to(ROOT)
         if any(part in FORBIDDEN_PARTS for part in rel.parts):
             errors.append(f"forbidden generated/cache path committed: {rel}")

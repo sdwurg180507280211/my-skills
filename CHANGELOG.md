@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — 仓库校验
+
+### Changed
+- `scripts/validate_skills.py` 只检查 Git 会提交的文件（已跟踪加未被忽略的新文件），本地运行测试产生的 `__pycache__` 等已忽略缓存不再导致校验失败；不在 Git 仓库中时仍扫描全部文件。
+
 ## Unreleased — 医荟她健康全生命周期定位
 
 ### Changed

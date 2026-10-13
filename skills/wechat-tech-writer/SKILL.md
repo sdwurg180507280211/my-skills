@@ -52,7 +52,7 @@ description: 为“小团子Java”技术公众号提供软件推荐、工具入
 
 用户给出文章目录时，将成品 HTML 放在其一级目录，图片可放 `imgs/`；不迁入仓库。扩写或重排已有成品前保留可恢复旧版，同步修改 Markdown 和 HTML，避免下次渲染恢复旧内容。提示词与所选方案留在当次工作目录，不固定要求一大套报告文件。
 
-无指定排版时，按 `layout-xiaotuanzi` 的 `instructions`、`template` 和组件完整 HTML 组装成品：栏目条、导语、说文解字卡、按二级标题重复的编号章节卡，以及正文、小节、代码块、注意框、表格、配图，最后是参考资料、资料说明和 END 落款。所有占位文案换成当篇内容；不把它降级成只套 CSS，也不为凑组件而使用组件。
+无指定排版时，用 [render_xiaotuanzi.py](scripts/render_xiaotuanzi.py) 按 `layout-xiaotuanzi` 组装成品：它从图库 `styles.json` 读取组件完整 HTML，把 Markdown 块映射到组件并填槽，输出只含正文的 HTML（加 `--preview` 套用模板外壳预览）；不自带样式副本。手工组装时同样按其 `instructions`、`template` 和组件完整 HTML：栏目条、导语、说文解字卡、按二级标题重复的编号章节卡，以及正文、小节、代码块、注意框、表格、配图，最后是参考资料、资料说明和 END 落款。所有占位文案换成当篇内容；不把它降级成只套 CSS，也不为凑组件而使用组件。
 
 图库项目不可读时，退回本 Skill 的 [简洁技术主题](assets/themes/xiaotuanzi.css)（正文 16px、行高 1.85、段距 18px，资料区 12px），并在交付说明里写明用了退回方案。该主题只固化视觉参数，不固定文章结构。
 

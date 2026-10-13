@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — 技术号确定性排版
+
+### Added
+- `wechat-tech-writer/scripts/render_xiaotuanzi.py`：从图库 `styles.json` 读取 `layout-xiaotuanzi` 组件，把 Markdown（导语、说文解字、章节、小节、代码块、`>` 注意框、表格、列表、配图、参考资料与资料说明）映射填槽，输出只含正文的公众号 HTML；不复制样式，附离线测试。
+
 ## Unreleased — 仓库校验
 
 ### Changed

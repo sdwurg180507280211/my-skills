@@ -55,6 +55,16 @@ def table_rows(lines):
     return ''.join(out)
 
 
+def visible_links(fragment):
+    """公众号正文会去掉外部链接，所以把网址写成可见文字，读者仍能看到来源。"""
+    def show(m):
+        url = html.unescape(m.group(1))
+        short = re.sub(r'^https?://', '', url).rstrip('/')
+        return ('%s<span style="color:%s;font-family:%s;font-size:11px;word-break:break-all;">（%s）</span>'
+                % (m.group(2), GRAY, MONO, html.escape(short)))
+    return re.sub(r'(?s)<a\b[^>]*?href="([^"]+)"[^>]*>(.*?)</a>', show, fragment)
+
+
 def blocks_of(md):
     lines = md.splitlines()
     i, out = 0, []
@@ -104,7 +114,7 @@ def render(md, layout, parts):
             out = out.replace('{{%s}}' % key, value)
         return out
 
-    body, intro, section, images = [], None, 0, []
+    body, intro, section, images, term_cards = [], None, 0, [], []
     for block in blocks_of(md):
         kind = block[0]
         if kind == 'line':
@@ -126,10 +136,17 @@ def render(md, layout, parts):
                     images.append(m.group(2))
                     body.append(fill('小团子-图片', src=html.escape(m.group(2)), alt=html.escape(m.group(1))))
                 continue
-            m = TERM_RE.fullmatch(line)
+            # 定义可能在章节内，或与后续说明同段；模板槽位始终在导语之后。
+            m = TERM_RE.match(line)
             if m:
-                body.append(fill('小团子-说文解字', term=html.escape(m.group(1)),
-                                 english=html.escape(m.group(2)), chinese=html.escape(m.group(3))))
+                term_cards.append(fill('小团子-说文解字', term=html.escape(m.group(1)),
+                                       english=html.escape(m.group(2)), chinese=html.escape(m.group(3))))
+                line = line[m.end():].lstrip()
+                # 卡片取代定义句，句末句号不应成为后续段落的第一个字符。
+                if line.startswith(('。', '.', '．')):
+                    line = line[1:].lstrip()
+                if line:
+                    body.append(fill('小团子-正文', text=inline(line)))
                 continue
             if intro is None and section == 0 and not body:
                 intro = '<p style="margin:0;">%s</p>' % inline(line)
@@ -149,12 +166,11 @@ def render(md, layout, parts):
         elif kind == 'sources':
             paras = re.findall(r'(?s)<p>(.*?)</p>', block[1])
             note = paras.pop() if paras and paras[-1].lstrip().startswith('资料核对') else ''
-            link = '<a style="color:%s;text-decoration:underline;" ' % GRAY
-            refs = ''.join('<p style="margin:0 0 10px;">%s</p>' % p.replace('<a ', link) for p in paras)
+            refs = ''.join('<p style="margin:0 0 10px;">%s</p>' % visible_links(p) for p in paras)
             body.append(fill('小团子-参考资料', references=refs))
             if note:
                 body.append(fill('小团子-资料说明', sourceNote=note))
-    head = parts['小团子-栏目'] + (fill('小团子-导语', intro=intro) if intro else '')
+    head = parts['小团子-栏目'] + (fill('小团子-导语', intro=intro) if intro else '') + ''.join(term_cards)
     content = head + ''.join(body) + parts['小团子-结尾']
     leftover = re.findall(r'\{\{\w+\}\}', content)
     if leftover:

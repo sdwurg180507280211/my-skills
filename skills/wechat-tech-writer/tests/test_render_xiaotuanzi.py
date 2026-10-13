@@ -52,14 +52,17 @@ echo "<hi>"
 
 
 class RenderTest(unittest.TestCase):
-    def run_render(self, *extra):
+    def run_render(self, *extra, article=ARTICLE):
         with tempfile.TemporaryDirectory() as d:
             styles, md, out = (os.path.join(d, n) for n in ('styles.json', 'a.md', 'out.html'))
-            json.dump(STYLES, open(styles, 'w', encoding='utf-8'), ensure_ascii=False)
-            open(md, 'w', encoding='utf-8').write(ARTICLE)
+            with open(styles, 'w', encoding='utf-8') as stream:
+                json.dump(STYLES, stream, ensure_ascii=False)
+            with open(md, 'w', encoding='utf-8') as stream:
+                stream.write(article)
             res = subprocess.run([sys.executable, SCRIPT, md, styles, out] + list(extra),
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-            return open(out, encoding='utf-8').read(), json.loads(res.stdout.decode())
+            with open(out, encoding='utf-8') as stream:
+                return stream.read(), json.loads(res.stdout.decode())
 
     def test_maps_blocks_to_components(self):
         doc, info = self.run_render()
@@ -76,13 +79,55 @@ class RenderTest(unittest.TestCase):
         self.assertIn('<th', doc)
         self.assertIn('· 一', doc)
         self.assertIn('资料核对于 2026 年 10 月 13 日。', doc.split('小团子-资料说明')[1])
+        refs = doc.split('小团子-参考资料')[1].split('小团子-资料说明')[0]
+        self.assertIn('示例<span', refs)
+        self.assertIn('（example.com）', refs)
+        self.assertNotIn('<a ', refs)
         self.assertTrue(doc.startswith('<!DOCTYPE html>'))
         self.assertLess(doc.index('小团子-栏目'), doc.index('小团子-导语'))
+        self.assertLess(doc.index('小团子-导语'), doc.index('小团子-说文解字'))
+        self.assertLess(doc.index('小团子-说文解字'), doc.index('小团子-章节'))
         self.assertLess(doc.index('小团子-参考资料'), doc.index('小团子-结尾'))
 
     def test_preview_uses_template_shell(self):
         doc, _ = self.run_render('--preview')
         self.assertIn('<div id="shell">', doc)
+
+    def test_definition_in_chapter_moves_before_body(self):
+        article = ('# 示例\n\n导语。\n\n开头补充说明。\n\n## 认识工具\n\n'
+                   '![示意](imgs/01-a.png)\n\n原有说明。\n\n'
+                   '**ABC = Example Tool（示例工具）**\n\n后续说明。')
+        doc, info = self.run_render(article=article)
+        self.assertEqual(doc.count('data-c="小团子-说文解字"'), 1)
+        self.assertLess(doc.index('小团子-导语'), doc.index('小团子-说文解字'))
+        self.assertLess(doc.index('小团子-说文解字'), doc.index('开头补充说明'))
+        self.assertLess(doc.index('小团子-说文解字'), doc.index('小团子-章节'))
+        self.assertLess(doc.index('原有说明'), doc.index('后续说明'))
+        self.assertEqual(info['images'], ['imgs/01-a.png'])
+
+    def test_embedded_definition_preserves_remaining_paragraph(self):
+        for punctuation in ('。', '.', '．', ''):
+            with self.subTest(punctuation=punctuation):
+                article = ('# 示例\n\n导语。\n\n## 第一章\n\n'
+                           '**ABC = Example Tool（示例工具）**' + punctuation +
+                           '这是它的全名，后面有 **重点** 和 `example --help`。')
+                doc, _ = self.run_render(article=article)
+                self.assertEqual(doc.count('ABC|Example Tool|示例工具'), 1)
+                self.assertLess(doc.index('小团子-说文解字'), doc.index('小团子-章节'))
+                self.assertIn('这是它的全名，后面有', doc)
+                self.assertIn('example --help</code>', doc)
+                self.assertNotIn('。这是', doc)
+                self.assertNotIn('.这是', doc)
+                self.assertNotIn('．这是', doc)
+
+    def test_does_not_invent_terms_or_extract_examples(self):
+        article = ('# 示例\n\n导语。\n\n## 正文\n\n产品名不是缩写，不编全称。\n\n'
+                   '正文顺带举例 **XYZ = Example（示例）**，不提升为主角卡片。\n\n'
+                   '```text\n**ABC = Example Tool（示例工具）**\n```')
+        doc, _ = self.run_render(article=article)
+        self.assertNotIn('data-c="小团子-说文解字"', doc)
+        self.assertIn('XYZ = Example（示例）', doc)
+        self.assertIn('**ABC = Example Tool（示例工具）**', doc)
 
 
 if __name__ == '__main__':

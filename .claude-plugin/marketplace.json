@@ -23,7 +23,7 @@
     },
     {
       "name": "infrastructure-skills",
-      "description": "Deployment and network utility workflows",
+      "description": "Deployment, network utilities, and Claude environment and dedicated browser workflows",
       "source": "./",
       "strict": false,
       "skills": [

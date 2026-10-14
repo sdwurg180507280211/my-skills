@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude 环境维护"
+  short_description: "审计 Claude 认证与配置残留，按确认范围清理和恢复，核对使用风险与联网边界"
+  default_prompt: "使用 $claude-maintenance 只读检查我的 Claude 环境，列出认证、配置和历史残留问题，先说明清理影响与恢复方法，不执行删除。"

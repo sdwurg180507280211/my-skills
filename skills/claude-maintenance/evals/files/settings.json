@@ -1,0 +1,10 @@
+{
+  "env": {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "0",
+    "HTTPS_PROXY": "http://127.0.0.1:12345",
+    "NO_PROXY": "localhost,127.0.0.1,::1",
+    "ANTHROPIC_BASE_URL": "https://gateway.example.invalid/",
+    "ANTHROPIC_API_KEY": "SYNTHETIC_ONLY_NOT_A_CREDENTIAL"
+  },
+  "model": "synthetic-model"
+}

@@ -13,6 +13,7 @@
 | [`codex-dream-skin-fix`](skills/codex-dream-skin-fix) | Development | 排查 Codex Dream Skin 主题不生效：CDP 端口错位诊断与让 Dream Skin 重新持有会话 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连与链式代理、Claude 固定出口和登录回调维护 |
+| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 认证/接口残留审计、按确认范围清理与恢复、功能开关和客户端风险检查；网络流程复用 china-proxy |
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
@@ -90,6 +91,12 @@ uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
 按任务读取 [网络模式与检测](skills/china-proxy/references/network-checks.md)、[Clash 分流与链式代理](skills/china-proxy/references/clash-routing-and-chain.md)、[Claude 浏览器/CLI 专用出口](skills/china-proxy/references/claude-fixed-exit.md)。包括国内域名/cncidr 规则来源、DNS、订阅继承、故障与退出测试、独立浏览器、本机 OAuth 回调、官方认证和恢复范围。
 
 仓库只保存参数化维护指南，不包含个人出口 IP、节点密码、订阅密钥、浏览器 profile、账号历史或正在运行的守护副本。阅读/安装 skill 不自动安装守护、不改变网络；CLI 已受保护不等于 Claude App 也已受保护，也不构成账号免封保证。
+
+### Claude 环境清理与账号风险检查
+
+[`claude-maintenance`](skills/claude-maintenance/SKILL.md) 独立处理官方认证与第三方接口冲突、旧组织/会话/缓存分类、只读审计→备份核验→当前确认→可恢复清理→验收，以及钥匙串不可按普通文件恢复的边界。网络、链式和固定出口复用 `china-proxy`，安装时建议两者一起安装；缺少网络技能不自动下载或改线路。
+
+包含不输出配置值的只读 JSON 审计器、合成配置离线测试和三种行为核对场景。对非必要流量开关、云端任务、`/fork` 后台会话和新电脑迁移分别记录实际验证要求；不把“非空就删除”、改时区/本地 ID 或清历史写成防封保证，不默认执行清理、登录退出或故障注入。
 
 ### 公众号下游（按需）
 

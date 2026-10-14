@@ -28,7 +28,8 @@
       "strict": false,
       "skills": [
         "./skills/github-aliyun-deploy",
-        "./skills/china-proxy"
+        "./skills/china-proxy",
+        "./skills/claude-maintenance"
       ]
     },
     {

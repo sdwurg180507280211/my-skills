@@ -90,7 +90,7 @@ uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
 
 按任务读取 [网络模式与检测](skills/china-proxy/references/network-checks.md)、[Clash 分流与链式代理](skills/china-proxy/references/clash-routing-and-chain.md)，包括国内域名/cncidr 规则来源与转换、DNS、订阅继承、故障与退出测试。Claude 专属的分流、固定出口和出口守护在 `claude-maintenance`。
 
-仓库只保存参数化维护指南，不包含个人出口 IP、节点密码、订阅密钥、浏览器 profile、账号历史或正在运行的守护副本。阅读/安装 skill 不自动安装守护、不改变网络；CLI 已受保护不等于 Claude App 也已受保护，也不构成账号免封保证。
+仓库只保存参数化维护指南，不包含个人出口 IP、节点密码、订阅密钥、浏览器 profile 或正在运行的守护副本。
 
 ### Claude 环境清理与专用浏览器
 

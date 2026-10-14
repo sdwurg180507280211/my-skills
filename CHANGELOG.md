@@ -11,6 +11,9 @@
 - 理顺与 `china-proxy` 的分工：Claude 专属的域名规则、固定出口组、DNS 策略和专用 listener 归入 `claude-maintenance/references/clash-routing.md`；原 `china-proxy/references/claude-fixed-exit.md` 移为 `claude-maintenance/references/fixed-exit.md` 并与浏览器、认证文档去重；国内直连名单来源与转换、通用 DNS、链式代理和故障测试方法保留在 `china-proxy`。两个技能的描述与路由同步更新。
 - 专用浏览器启动示例补齐本机实现已在用的 `--host-resolver-rules`、`--disable-background-networking`、`--disable-sync`，测试同步断言；`fixed-exit.md` 记录租约清理、端口单一来源、两层代理变量的作用及会话内命令继承固定出口。
 - `china-proxy` 的 SKILL.md 精简为路由、模式判断、修改验证和敏感信息四部分，去掉 Claude 账号相关声明和重复的边界说明。
+- `china-proxy` 记录订阅自带规则与兜底组的清理：Clash Verge Rev 2.5.7 生成顺序中订阅 Script 最后执行，用通用脚本删除前置 MATCH 之后永远不会命中的订阅规则，并从 MATCH 兜底组去掉 DIRECT；附离线测试与重新激活后的核对项。
+- `claude-maintenance` 支持 Windows：新增跨平台 `scripts/exit_guard.py`（出口守护、专用 Chrome、`claude-safe` CLI 入口、OAuth helper、wrapper 生成，单一 JSON 配置，CLI 代理设置由端口自动生成），处理 Windows 的进程判断、端口独占绑定、文件锁和提示框差异；探测改用 urllib、链路检查改用 PyYAML。新增 `references/platforms.md` 对照两平台路径、命令、shell 约定与安装步骤，并列出待 Windows 实机验证项。浏览器文档改为基于守护，删除被取代的 sh 启动示例及其测试；新增 26 项离线测试和 Windows 场景评测。
+- `china-proxy/scripts/detect_network.py` 支持 Windows：进程用 `tasklist`，配置目录用 `%APPDATA%`，系统代理读注册表（含 PAC），路由用 `Find-NetRoute` 和 `Get-NetAdapter` 判断是否经过 Mihomo/Wintun 网卡；输出新增 `platform`，`through_utun` 改为通用的 `through_tun`。新增 Windows 合成测试，macOS 实测结果不变。
 - 精简防御性内容：删除账号风险参考，常见报错区分并入认证文档；清理改为按风险分级，低风险的已结束任务临时文件和缓存确认一次即可移入废纸篓；去掉各文档重复的禁令，安全底线集中在 SKILL.md。
 - README 与 Infrastructure bundle 登记新技能，保持既有版本和其他本地修改；技能安装不修改本机账号、代理或数据。
 

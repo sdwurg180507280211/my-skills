@@ -51,6 +51,39 @@ rule-providers:
 
 相对路径以实际内核工作目录为准，字段以当前内核的 [rule-provider 文档](https://wiki.metacubex.one/config/rule-providers/) 为准。记录来源、快照日期、规则数、缓存位置和更新方式。本地域名快照需要重新下载并转换，保留上一份；远程更新要有超时和可恢复的上一份数据。导入规则集不等于正确命中，需用连接记录验证。
 
+## 订阅自带规则与兜底组
+
+用规则扩展的 `prepend` 写自己的规则并以 `MATCH` 结尾时，订阅自带的规则会排在后面，永远不会命中（实测两个订阅分别多出 42 条和 516 条）。订阅的兜底 `select` 组也可能包含 DIRECT，手动选到它时所有海外流量直连。
+
+Clash Verge Rev 2.5.7 的生成顺序（`src-tauri/src/enhance/mod.rs`）：规则/节点/组扩展 → 应用自身设置 → 全局 Merge → 全局 Script → 订阅的 Merge → **订阅的 Script（最后）**。所以在每个订阅自己的 Script 里清理，订阅更新后仍然有效：
+
+```js
+function main(config, profileName) {
+  // 规则扩展的前置规则以 MATCH 兜底，之后的订阅规则永远不会命中，直接删掉。
+  const rules = config.rules || [];
+  const matchIndex = rules.findIndex((rule) => typeof rule === "string" && rule.startsWith("MATCH,"));
+  if (matchIndex < 0) {
+    return config;
+  }
+  config.rules = rules.slice(0, matchIndex + 1);
+
+  // MATCH 兜底组不提供 DIRECT，避免误选后海外流量直连。
+  const fallback = rules[matchIndex].split(",")[1];
+  for (const group of config["proxy-groups"] || []) {
+    if (group.name === fallback && Array.isArray(group.proxies)) {
+      group.proxies = group.proxies.filter((proxy) => proxy !== "DIRECT");
+    }
+  }
+  return config;
+}
+```
+
+- 每个订阅有各自的 Script（`profiles.yaml` 中该订阅 `option.script` 指向的文件），多个订阅都要写。脚本不写组名，按 MATCH 指向的组处理。
+- 改前备份原脚本和当前生成配置。用 Node 加载脚本，喂入订阅规则与 `prepend` 拼接的模拟配置做离线测试。
+- 只改文件不会重新生成配置。在界面里右键订阅「重新激活」（或切换订阅再切回）后，核对生成配置：规则条数、只有一个 MATCH、兜底组没有 DIRECT、专用规则和 listener 保留。重新加载会让现有连接断开几秒。
+- 只删除首个 MATCH 之后的规则，实际分流不变；如果需要订阅里的某些规则（如广告拦截），把它们移进 `prepend` 并放在 MATCH 之前。
+- 其他版本先核对生成顺序再套用。
+
 ## DNS 和连接识别
 
 - 国内 DNS 仅用于约定的国内域名；默认/海外域名与代理节点域名的解析路径分开设计。

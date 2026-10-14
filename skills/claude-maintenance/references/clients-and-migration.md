@@ -16,7 +16,7 @@
 
 ## 新电脑迁移
 
-1. 安装官方 CLI/App，重新登录；不复制旧电脑的认证文件和钥匙串。
+1. 安装官方 CLI/App，重新登录；不复制旧电脑的认证文件和钥匙串。迁到 Windows 时先装 Git for Windows，按 [平台差异](platforms.md) 安装出口守护和桌面快捷方式。
 2. 按用户要求恢复 `skills`、hooks、设置，检查其中硬编码的旧路径。
 3. 自定义启动器或 wrapper（如 `claude-safe`）不是官方功能，迁移时按新机器重新配置路径和端口。
 4. 国内直连等通用 Clash 配置按 `china-proxy` 恢复，Claude 规则、专用 listener 和出口守护按本技能的参考重新配置。

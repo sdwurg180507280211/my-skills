@@ -21,7 +21,7 @@ description: Diagnose network paths under TUN or explicit proxy mode, troublesho
 
 - **已启用 TUN**：普通请求走系统路由，不额外注入 `HTTP_PROXY`。系统代理关闭不代表 TUN 无效。
 - **用户要求显式代理，或目标在 TUN 下失败**：确认入口后只对当前命令设置代理，有限重试。
-- **模式不明**：在本技能目录运行 `python3 scripts/detect_network.py`。它只读检查 Clash/Mihomo 进程、Clash Verge 生成配置、macOS 系统代理和探测 IP 的路由，不联网、不输出订阅或凭据。`mode: tun` 表示配置、进程与 `utun` 路由互相印证；`tun_configured_unconfirmed` 或 `unknown` 只是证据不足，不代表 TUN 已关闭。具体目标的分流仍需单独验证。
+- **模式不明**：在本技能目录运行 `python3 scripts/detect_network.py`（Windows 用 `py -3`）。它只读检查 Clash/Mihomo 进程、Clash Verge 生成配置、系统代理（macOS `scutil`，Windows 注册表）和探测 IP 的路由（macOS `utun`，Windows 用 `Find-NetRoute` 查到的 Mihomo/Wintun 网卡），不联网、不输出订阅或凭据。`mode: tun` 表示配置、进程与 TUN 路由互相印证；`tun_configured_unconfirmed` 或 `unknown` 只是证据不足，不代表 TUN 已关闭。具体目标的分流仍需单独验证。
 - **遗留覆盖**：只为当前任务移除影响请求的旧环境变量，不永久改全局 Git/npm 配置或系统网络模式。
 
 `scripts/detect_proxy.py` 只探测常见端口能否 TCP 连接，不确认协议、出口或 TUN，不用它决定是否关闭 TUN。

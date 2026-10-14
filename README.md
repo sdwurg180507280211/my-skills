@@ -13,7 +13,7 @@
 | [`codex-dream-skin-fix`](skills/codex-dream-skin-fix) | Development | 排查 Codex Dream Skin 主题不生效：CDP 端口错位诊断与让 Dream Skin 重新持有会话 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连规则集、DNS 与链式代理 |
-| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 数据清理、认证与配置维护、专用 Chrome、Clash 分流/DNS 与固定出口 |
+| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 数据清理、认证与配置维护、跨平台出口守护与专用 Chrome、Clash 分流/DNS 与固定出口（macOS/Windows） |
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
@@ -98,7 +98,9 @@ uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
 
 Claude 专属网络也在该技能：[Claude 分流与固定出口](skills/claude-maintenance/references/clash-routing.md)（Claude 域名规则、固定出口组、DNS 策略、专用 listener、验证）和 [出口守护与 CLI 入口](skills/claude-maintenance/references/fixed-exit.md)（公网 IP 校验守护、`claude-safe` 类入口、OAuth 回调排查）。国内直连名单、通用 DNS 和链式代理仍在 `china-proxy`。
 
-专用浏览器按 [创建流程](skills/claude-maintenance/references/browser-setup.md) 完成参数确认、独立 profile、持久桌面入口、CLI 登录配合、网络验收和恢复。包含脱敏只读 JSON 设置审计器、合成配置测试、浏览器启动命令的离线参数测试及行为核对场景。
+支持 macOS 和 Windows：`scripts/exit_guard.py` 是跨平台的出口守护、专用 Chrome 启动器、受保护 CLI 入口（`claude-safe`）和 OAuth helper，附合成配置与本机 socket 的离线测试；[平台差异](skills/claude-maintenance/references/platforms.md) 集中放两个平台的路径、命令、shell 约定和 Windows 安装步骤。
+
+专用浏览器由守护启动，见 [专用 Chrome](skills/claude-maintenance/references/browser-setup.md)：独立 profile、桌面入口、验收和恢复。另含脱敏只读 JSON 设置审计器、合成配置测试和行为核对场景。
 
 ### 公众号下游（按需）
 

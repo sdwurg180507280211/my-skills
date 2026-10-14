@@ -50,6 +50,18 @@
         "CLI 登录使用同一浏览器，loopback 回调有明确 bypass 与测试步骤。",
         "给出参数更新、实际入口/出口验收和启动器/profile 恢复方法。"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "我要在一台新的 Windows 11 电脑上用 Claude Code，也开着 Clash Verge 的 TUN，需要专用 Chrome 和出口守护，和 Mac 上一样。先给方案，不要执行：要装什么、配置写在哪、桌面入口怎么做、哪些需要我在 Windows 上实测。",
+      "expected_output": "按 platforms.md 给出 Git for Windows、Python 与 PyYAML、%APPDATA% 下的守护配置、install-wrappers 生成 .cmd 并加入 PATH、pythonw 快捷方式、Clash Verge 服务模式 TUN，并列出 BROWSER、提示框、快捷方式等待实机验证项；不复制 Mac 的凭据。",
+      "files": [],
+      "expectations": [
+        "说明 Windows 上 Bash 工具走 Git Bash、系统操作用 PowerShell，并建议安装 Git for Windows。",
+        "使用 exit_guard.py 和同一份 JSON 配置，配置路径与反斜杠写法正确，browser_helper 指向生成的 .cmd。",
+        "桌面入口用 pythonw 快捷方式调用 exit_guard.py browser，不依赖终端环境变量。",
+        "列出需要在 Windows 实机验证的项，不把 macOS 的测试结果当成 Windows 已验证；不复制旧电脑的凭据文件。"
+      ]
     }
   ]
 }

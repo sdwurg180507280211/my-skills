@@ -2,7 +2,7 @@
 
 ## 检查范围
 
-当前进程环境；`.zshrc`、`.zshenv`、`.zprofile`、`.bashrc`、`.bash_profile`、`.profile`；用户、项目、local 和托管设置；启动器额外传入的 `--settings`；npm/yarn/pnpm、Git、Homebrew 的代理设置。另核对 `which claude` 的实际二进制和 shell alias/wrapper。
+当前进程环境；`.zshrc`、`.zshenv`、`.zprofile`、`.bashrc`、`.bash_profile`、`.profile`；Windows 上还有用户/系统环境变量、PowerShell `$PROFILE` 和 Git Bash 的 `~/.bashrc`（见 [平台差异](platforms.md)）；用户、项目、local 和托管设置；启动器额外传入的 `--settings`；npm/yarn/pnpm、Git、Homebrew 的代理设置。另核对 `which claude` 的实际二进制和 shell alias/wrapper。
 
 只报告键名、来源和类别，不用 `env | grep` 或 `cat settings.json` 直接输出。JSON 设置可用 `scripts/audit_settings.py`（从技能根目录运行）。不要运行未知的 `apiKeyHelper`、hooks 或启动脚本来"检查"它们。
 

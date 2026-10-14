@@ -16,6 +16,7 @@ rules:
 
 - Claude 规则放在国内域名/IP 判断之前。三个域名是起点，登录、资源和工具依赖从实际连接记录补齐。
 - 组名替换为本机已确认的名称。
+- 规则扩展的 `prepend` 以 MATCH 结尾时，订阅自带规则永远不会命中，兜底组也可能含 DIRECT。用每个订阅自己的 Script 清理，见 [china-proxy：订阅自带规则与兜底组](../../china-proxy/references/clash-routing-and-chain.md)。
 
 ## 二、固定出口组
 

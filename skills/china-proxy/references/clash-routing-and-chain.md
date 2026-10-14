@@ -1,5 +1,7 @@
 # Clash 分流、链式代理与持久化
 
+本参考维护通用 Clash 操作：国内直连、规则集、DNS、链式代理与持久化。Claude 专属的域名规则、固定出口组、DNS 策略和专用入口在 [claude-maintenance 的 Claude 分流与固定出口](../../claude-maintenance/references/clash-routing.md) 维护；这里的专用流量指任意需要指定线路的业务。
+
 ## 来源与备份
 
 查正在运行的客户端和内核，不只看一个静态 `config.yaml`。Clash Verge Rev 通常把订阅、局部扩展、全局扩展与 GUI 链式选择生成运行配置。
@@ -15,9 +17,9 @@
 
 ## 规则顺序
 
-规则按首次命中处理。典型目标“国内直连，其余海外；Claude 只走指定落地”可按下列逻辑组织，而非照抄未验证的组名：
+规则按首次命中处理。典型目标“国内直连，其余海外；专用业务走指定线路”可按下列逻辑组织，而非照抄未验证的组名：
 
-1. **专用入口/专用域名** → 已确认的固定落地节点或无 DIRECT 的专用策略。Claude 常见域名为 `claude.ai`、`claude.com`、`anthropic.com`；通过实际连接补齐，不把这个列表当穷尽。
+1. **专用入口/专用域名** → 已确认的固定落地节点或无 DIRECT 的专用策略；通过实际连接补齐目标依赖。
 2. **现有局域网/私有地址及必要系统服务** → DIRECT，保留用户原有含义。和专用入口冲突时先说明，不悄悄放行专用流量。
 3. **国内域名规则集** → DIRECT。
 4. **国内 IP 规则集** → DIRECT，确认 `no-resolve` 等选项是否符合当前 DNS 模式。
@@ -27,10 +29,27 @@
 
 规则集来源：
 
-- [pluwen/china-domain-allowlist](https://github.com/pluwen/china-domain-allowlist)：选与内核 `behavior` / `format` 兼容的实际文件。不能把 hosts、纯文本域名或完整仓库 URL 当作 YAML rule-provider。
-- [Loyalsoldier/clash-rules 的 cncidr](https://github.com/Loyalsoldier/clash-rules/blob/release/cncidr.txt)：核对 raw 内容、payload 结构与 provider 类型。
+- 国内域名：[pluwen/china-domain-allowlist](https://github.com/pluwen/china-domain-allowlist)。此前核对的 `allow-list.sorl` 含 SwitchyOmega 头部、注释、域名通配符和私有 IP 模式，不能直接作为 Clash YAML provider。转换时去掉头部与注释，域名和 IP 模式分开；父域及子域都要命中时把 `*.example.cn` 转为 `+.example.cn`；不认识的模式列出核对，不静默丢弃。生成 `payload:` domain YAML，私有地址继续由局域网规则处理。
+- 国内 IP：[Loyalsoldier/clash-rules 的 cncidr](https://github.com/Loyalsoldier/clash-rules/blob/release/cncidr.txt)。核对下载内容仍为 `payload:` YAML，使用 `behavior: ipcidr` 与 `format: yaml`。
 
-记录来源、快照日期、规则数、缓存位置和更新方式。离线快照不会自己更新；远程更新也要有超时、来源校验与可恢复的上一份数据。导入规则集不等于正确命中，需用连接记录验证。
+```yaml
+rule-providers:
+  cn-domain-allowlist:
+    type: file
+    behavior: domain
+    format: yaml
+    path: ./rules/cn-domains.yaml
+  cncidr-allowlist:
+    type: http
+    behavior: ipcidr
+    format: yaml
+    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt
+    path: ./rules/cncidr.yaml
+    interval: 86400
+    proxy: <海外默认组>
+```
+
+相对路径以实际内核工作目录为准，字段以当前内核的 [rule-provider 文档](https://wiki.metacubex.one/config/rule-providers/) 为准。记录来源、快照日期、规则数、缓存位置和更新方式。本地域名快照需要重新下载并转换，保留上一份；远程更新要有超时和可恢复的上一份数据。导入规则集不等于正确命中，需用连接记录验证。
 
 ## DNS 和连接识别
 
@@ -60,7 +79,7 @@
 验证清单：
 
 - 国内网站命中国内域名/IP 规则并 DIRECT；局域网仍可访问。
-- Claude 新请求命中固定落地，普通国外网站命中约定兜底。
+- 专用业务的新请求命中固定落地，普通国外网站命中约定兜底。
 - 无显式代理的终端请求由 TUN 接管；显式专用入口请求由该入口接管。
 - 前置或落地不可用时，专用请求被阻断且没有换出口；国内访问仍符合要求。
 - Clash 整体退出后再测。仅靠 Clash 规则一般无法约束客户端退出后恢复的系统路由；显式入口可使使用它的客户端报错，但这不是全机 kill switch。

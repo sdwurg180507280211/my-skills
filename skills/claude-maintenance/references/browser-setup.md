@@ -1,6 +1,6 @@
 # 创建 Claude 专用 Chrome
 
-本流程负责独立浏览器环境、启动入口、CLI 登录配合和验收。Clash listener、链式代理、DNS 和出口守护采用 [china-proxy](../../china-proxy/SKILL.md) 的流程。
+本流程负责独立浏览器环境、启动入口、CLI 登录配合和验收。浏览器使用的专用入口来自 [Claude 分流](clash-routing.md) 的 listener 或 [出口守护](fixed-exit.md)。
 
 ## 一、确定本机参数
 
@@ -20,16 +20,11 @@ Chrome 尚未安装时，从官方渠道安装适配系统与架构的版本；�
 
 沿用已确认的节点、端口和目录；只询问缺失且影响实施的参数。启动器、profile 和当前配置记录在本机私有目录。
 
-## 二、准备网络入口
+## 二、确认网络入口
 
-显式专用模式先核对入口，再创建浏览器：
+显式专用模式下，先确认入口可用再创建浏览器：已有出口守护时用守护入口并检查其状态页；只有 listener 时直接用它。通过该入口做一次有超时的出口查询，核对符合期望 IP。
 
-1. 找到运行中的 Clash 配置与专用 listener，核对它指向的落地及前置。
-2. 已有出口守护时，浏览器使用守护入口，先检查服务身份和健康状态；守护上游仍是专用 listener。
-3. 仅有 listener 时使用该入口，记录当前是固定链式模式。要增加公网 IP 校验，按 `china-proxy` 另行建立守护。
-4. 通过选定入口做有超时的出口查询，并核对当前节点链。
-
-普通 TUN 模式沿用系统路由，不添加下面的显式代理参数。用户要求固定入口及入口失效时停止访问时，使用显式专用模式，启动器只配置这一入口。
+普通 TUN 模式沿用系统路由，不加下面的代理参数。用户要求入口失效时停止访问，就用显式专用模式，启动器只配置这一个入口。
 
 ## 三、创建独立环境并首次启动
 
@@ -52,8 +47,11 @@ exec "$CLAUDE_CHROME_BIN" \
   --user-data-dir="$CLAUDE_CHROME_PROFILE" \
   --proxy-server="$CLAUDE_CHROME_PROXY" \
   '--proxy-bypass-list=<-loopback>;localhost;127.0.0.1;[::1]' \
+  '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost' \
   --disable-quic \
   --force-webrtc-ip-handling-policy=disable_non_proxied_udp \
+  --disable-background-networking \
+  --disable-sync \
   --no-first-run \
   --no-default-browser-check \
   --new-window "$@"
@@ -63,7 +61,8 @@ exec "$CLAUDE_CHROME_BIN" \
 - `--proxy-server` 指向实际 HTTP 入口；入口连接失败时停止请求。
 - bypass 仅列字面 loopback，供 CLI 的本机回调使用。
 - QUIC/WebRTC 参数控制对应的 UDP 行为，验收时检查当前 Chrome 版本的实际效果。
-- 需要约束额外域名解析时，沿用当前 `china-proxy` 的 DNS/连接识别方案。已有 `host-resolver-rules` 启动参数需保留实际代理主机和 localhost 的解析例外。
+- `host-resolver-rules` 让 Chrome 不在本机解析域名，全部交给代理；例外只留 loopback。代理入口不是 127.0.0.1 时把它的主机也加进 EXCLUDE。
+- `--disable-background-networking` 和 `--disable-sync` 关掉后台更新请求和账号同步，减少不经过页面的连接。
 
 profile 已有 Chrome 实例时，新启动通常会复用它。改变参数前保存工作并完整退出该专用实例，再启动；普通 Chrome 保持运行。
 
@@ -80,14 +79,7 @@ profile 已有 Chrome 实例时，新启动通常会复用它。改变参数前�
 
 ## 五、配合 Claude CLI 登录
 
-需要 CLI 使用专用浏览器时：
-
-1. 核对实际 CLI/wrapper，复用已有的 OAuth browser helper；新环境则让 helper 将当前授权 URL 作为参数交给上述启动入口。
-2. 为该 CLI 子进程设置 `BROWSER`，保留其已有专用代理环境；`NO_PROXY` 包含 `localhost,127.0.0.1,::1`。
-3. 先用临时本机 HTTP 服务和合成参数测试 localhost/127.0.0.1 回调；IPv6 loopback 按实际支持测试并记录。
-4. 保持认证终端运行，由本次 CLI 登录生成新的授权页面。成功后只核对登录状态、认证方式和 provider。
-
-回调失败先查 listener 是否仍在、浏览器 bypass、DNS 例外和当前认证状态。具体检查方法见 [OAuth 回调维护](../../china-proxy/references/claude-fixed-exit.md)。
+让 CLI 用专用浏览器打开授权页面时，CLI 入口为子进程设置 `BROWSER` 指向 OAuth helper，helper 把授权 URL 交给上面的启动入口。具体做法、本机回调测试和回调失败排查见 [出口守护与 CLI 入口](fixed-exit.md)。
 
 ## 六、验收与日常调整
 

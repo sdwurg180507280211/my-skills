@@ -3,11 +3,14 @@
 ## Unreleased — Claude 环境维护
 
 ### Added
-- `claude-maintenance`：清理 Claude 本地空间、缓存、会话和旧组织数据，维护认证/第三方接口与代理残留，备份和恢复；网络操作复用 `china-proxy`。
+- `claude-maintenance`：清理 Claude 本地空间、缓存、会话和旧组织数据，维护认证/第三方接口与代理残留，备份和恢复。
 - 增加脱敏只读 JSON 设置审计器和合成数据离线测试；记录非必要流量开关的真值差异、新进程验证、云端与本机后台会话的网络边界及新电脑验收。
 - 增加专用 Chrome 创建流程：参数发现、独立 profile、持久桌面入口、CLI OAuth、本机回调、验收和恢复；新增启动命令离线测试，保留用户精简后的文档措辞。
 
 ### Changed
+- 理顺与 `china-proxy` 的分工：Claude 专属的域名规则、固定出口组、DNS 策略和专用 listener 归入 `claude-maintenance/references/clash-routing.md`；原 `china-proxy/references/claude-fixed-exit.md` 移为 `claude-maintenance/references/fixed-exit.md` 并与浏览器、认证文档去重；国内直连名单来源与转换、通用 DNS、链式代理和故障测试方法保留在 `china-proxy`。两个技能的描述与路由同步更新。
+- 专用浏览器启动示例补齐本机实现已在用的 `--host-resolver-rules`、`--disable-background-networking`、`--disable-sync`，测试同步断言；`fixed-exit.md` 记录租约清理、端口单一来源、两层代理变量的作用及会话内命令继承固定出口。
+- `china-proxy` 的 SKILL.md 精简为路由、模式判断、修改验证和敏感信息四部分，去掉 Claude 账号相关声明和重复的边界说明。
 - 精简防御性内容：删除账号风险参考，常见报错区分并入认证文档；清理改为按风险分级，低风险的已结束任务临时文件和缓存确认一次即可移入废纸篓；去掉各文档重复的禁令，安全底线集中在 SKILL.md。
 - README 与 Infrastructure bundle 登记新技能，保持既有版本和其他本地修改；技能安装不修改本机账号、代理或数据。
 

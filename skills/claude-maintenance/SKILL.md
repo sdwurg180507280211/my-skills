@@ -1,6 +1,6 @@
 ---
 name: claude-maintenance
-description: 清理和维护 Claude Code、Claude App 与专用 Chrome：释放 ~/.claude 空间、清理会话和缓存、排查认证/接口/代理冲突、修复 essential-traffic-only，以及创建、迁移和检查 Claude 专用浏览器。用户要求清理 Claude、检查配置或建立专用浏览器时使用；普通编程任务使用对应开发技能。
+description: 清理和维护 Claude Code、Claude App 与专用 Chrome：释放 ~/.claude 空间、清理会话和缓存、排查认证/接口/代理冲突、修复 essential-traffic-only，配置 Claude 的 Clash 分流与固定出口、出口守护、CLI 受保护入口和 OAuth 回调，以及创建、迁移和检查 Claude 专用浏览器。用户要求清理 Claude、检查 Claude 配置或网络出口、建立专用浏览器时使用；通用网络和 Clash 问题使用 china-proxy，普通编程任务使用对应开发技能。
 ---
 
 # Claude 环境清理与配置维护
@@ -13,7 +13,9 @@ description: 清理和维护 Claude Code、Claude App 与专用 Chrome：释放 
 - 官方订阅登录、第三方 API、shell/项目设置覆盖、代理残留、登录报错：读取 [认证与配置](references/auth-and-config.md)。
 - `essential-traffic-only`、非必要流量开关、云端任务、`/fork` 与会话分叉：读取 [功能开关与会话](references/features-and-sessions.md)。
 - 创建或调整 Claude 专用 Chrome、桌面启动入口、CLI 登录浏览器：读取 [专用浏览器创建流程](references/browser-setup.md)。
-- 新电脑迁移、多客户端联网验证：读取 [客户端与迁移](references/clients-and-migration.md)；实际网络操作交给 `china-proxy`。
+- Claude 域名分流、固定出口组、Claude DNS 策略、专用 listener：读取 [Claude 分流与固定出口](references/clash-routing.md)；国内直连名单、通用 DNS、链式代理和网络模式检测使用 `china-proxy`。
+- 出口守护、`claude-safe` 等受保护 CLI 入口、OAuth 回调失败、经受保护入口升级模型：读取 [出口守护与 CLI 入口](references/fixed-exit.md)。
+- 新电脑迁移、多客户端联网验证：读取 [客户端与迁移](references/clients-and-migration.md)。
 
 ## 安全底线
 

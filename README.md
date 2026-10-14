@@ -12,8 +12,8 @@
 | [`chrome-devtools`](skills/chrome-devtools) | Development | 已连接 Chrome DevTools MCP 时的网页打开、检查、测试与截图规范；工具缺失时如实报告，不静默换浏览器 |
 | [`codex-dream-skin-fix`](skills/codex-dream-skin-fix) | Development | 排查 Codex Dream Skin 主题不生效：CDP 端口错位诊断与让 Dream Skin 重新持有会话 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
-| [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连与链式代理、Claude 固定出口和登录回调维护 |
-| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | 释放 ~/.claude 空间、分级清理数据、排查认证与配置冲突、创建专用 Chrome；网络流程复用 china-proxy |
+| [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连规则集、DNS 与链式代理 |
+| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 数据清理、认证与配置维护、专用 Chrome、Clash 分流/DNS 与固定出口 |
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
@@ -84,17 +84,19 @@ uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
 
 需要 Python 3.10+；`uv run` 自动处理脚本声明的 MCP 依赖。`config` 是离线检查，`tools` 才验证连接；token 不写入技能、Marketplace 或命令行。技能安装不等于宿主已注册 MCP，也不自动修改 Codex 配置。操作范围及当前下载/本地上传/删除能力限制见技能入口。
 
-### 网络与 Claude 专用出口
+### 网络
 
-`china-proxy` 先区分 TUN、macOS 系统代理和进程代理。已有 TUN 时不默认叠加显式 HTTP 代理；Clash 原生链式配置由用户可视化管理，专用出口守护仅在明确要求时维护，不自动换落地或前置。
+`china-proxy` 先区分 TUN、macOS 系统代理和进程代理。已有 TUN 时不默认叠加显式 HTTP 代理；Clash 原生链式配置由用户可视化管理。
 
-按任务读取 [网络模式与检测](skills/china-proxy/references/network-checks.md)、[Clash 分流与链式代理](skills/china-proxy/references/clash-routing-and-chain.md)、[Claude 浏览器/CLI 专用出口](skills/china-proxy/references/claude-fixed-exit.md)。包括国内域名/cncidr 规则来源、DNS、订阅继承、故障与退出测试、独立浏览器、本机 OAuth 回调、官方认证和恢复范围。
+按任务读取 [网络模式与检测](skills/china-proxy/references/network-checks.md)、[Clash 分流与链式代理](skills/china-proxy/references/clash-routing-and-chain.md)，包括国内域名/cncidr 规则来源与转换、DNS、订阅继承、故障与退出测试。Claude 专属的分流、固定出口和出口守护在 `claude-maintenance`。
 
 仓库只保存参数化维护指南，不包含个人出口 IP、节点密码、订阅密钥、浏览器 profile、账号历史或正在运行的守护副本。阅读/安装 skill 不自动安装守护、不改变网络；CLI 已受保护不等于 Claude App 也已受保护，也不构成账号免封保证。
 
 ### Claude 环境清理与专用浏览器
 
-[`claude-maintenance`](skills/claude-maintenance/SKILL.md) 按风险分级清理 Claude 本地数据：已结束任务的临时文件和缓存确认一次即可移入废纸篓，会话历史和配置先备份，认证与钥匙串逐项确认。另处理官方订阅与第三方接口冲突、代理残留和 `essential-traffic-only` 等功能开关。网络、链式和固定出口复用 `china-proxy`。
+[`claude-maintenance`](skills/claude-maintenance/SKILL.md) 按风险分级清理 Claude 本地数据：已结束任务的临时文件和缓存确认一次即可移入废纸篓，会话历史和配置先备份，认证与钥匙串逐项确认。另处理官方订阅与第三方接口冲突、代理残留和 `essential-traffic-only` 等功能开关。
+
+Claude 专属网络也在该技能：[Claude 分流与固定出口](skills/claude-maintenance/references/clash-routing.md)（Claude 域名规则、固定出口组、DNS 策略、专用 listener、验证）和 [出口守护与 CLI 入口](skills/claude-maintenance/references/fixed-exit.md)（公网 IP 校验守护、`claude-safe` 类入口、OAuth 回调排查）。国内直连名单、通用 DNS 和链式代理仍在 `china-proxy`。
 
 专用浏览器按 [创建流程](skills/claude-maintenance/references/browser-setup.md) 完成参数确认、独立 profile、持久桌面入口、CLI 登录配合、网络验收和恢复。包含脱敏只读 JSON 设置审计器、合成配置测试、浏览器启动命令的离线参数测试及行为核对场景。
 

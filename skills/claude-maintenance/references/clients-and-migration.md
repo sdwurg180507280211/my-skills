@@ -1,8 +1,6 @@
 # 客户端联网与新电脑迁移
 
-网络、TUN、Clash 规则和固定出口由 [china-proxy](../../china-proxy/SKILL.md) 维护，这里只列 Claude 各客户端要分别验证的点。
-
-创建专用 Chrome、桌面启动入口和 CLI 登录浏览器，按 [专用浏览器创建流程](browser-setup.md) 执行。
+这里只列 Claude 各客户端要分别验证的点。Claude 分流和固定出口见 [clash-routing.md](clash-routing.md)，出口守护和 CLI 入口见 [fixed-exit.md](fixed-exit.md)，专用浏览器见 [browser-setup.md](browser-setup.md)；通用网络检测用 `china-proxy`。
 
 ## 各客户端分别验证
 
@@ -21,5 +19,5 @@
 1. 安装官方 CLI/App，重新登录；不复制旧电脑的认证文件和钥匙串。
 2. 按用户要求恢复 `skills`、hooks、设置，检查其中硬编码的旧路径。
 3. 自定义启动器或 wrapper（如 `claude-safe`）不是官方功能，迁移时按新机器重新配置路径和端口。
-4. 网络配置交给 `china-proxy`。
+4. 国内直连等通用 Clash 配置按 `china-proxy` 恢复，Claude 规则、专用 listener 和出口守护按本技能的参考重新配置。
 5. 验证登录、本机回调和实际出口，记录已测和未测项。

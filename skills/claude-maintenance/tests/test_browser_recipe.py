@@ -59,6 +59,9 @@ class BrowserRecipeTests(unittest.TestCase):
         self.assertIn("--disable-quic", args)
         self.assertIn("--force-webrtc-ip-handling-policy=disable_non_proxied_udp", args)
         self.assertIn("--no-default-browser-check", args)
+        self.assertIn("--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost", args)
+        self.assertIn("--disable-background-networking", args)
+        self.assertIn("--disable-sync", args)
 
     def test_synthetic_oauth_url_is_not_split_by_shell(self):
         url = "http://localhost:54321/callback?code=TEST_ONLY&state=TEST_ONLY"

@@ -18,7 +18,7 @@
 | 官方 CLI | `~/.local/bin/claude` | `%USERPROFILE%\.local\bin\claude.exe` |
 | Claude App 数据 | `~/Library/Application Support/Claude` | `%APPDATA%\Claude`（待实机验证） |
 | 守护配置 | `~/Library/Application Support/Claude Dedicated Guard/config.json` | `%APPDATA%\Claude Dedicated Guard\config.json` |
-| Clash Verge 数据 | `~/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev` | `%APPDATA%\io.github.clash-verge-rev.clash-verge-rev`（待实机验证） |
+| Clash Verge 数据 | `~/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev` | `%APPDATA%\io.github.clash-verge-rev.clash-verge-rev` |
 | Chrome | `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` | `C:\Program Files\Google\Chrome\Application\chrome.exe` |
 | 废纸篓 | `~/.Trash` | 各盘的回收站 |
 
@@ -81,16 +81,33 @@ Windows 的凭据是普通文件：清理或备份时按敏感文件处理（权
 - 判断进程是否存活用系统 API；Windows 的 `os.kill(pid, 0)` 会结束目标进程，不能用。
 - 端口用独占绑定（`SO_EXCLUSIVEADDRUSE`），防止另一个程序绑定同一端口。
 - 文件锁用 `msvcrt`，提示框用 `MessageBoxW`，查 Chrome 进程用 PowerShell CIM（结果缓存 5 秒，跳过带 `--type=` 的子进程）。
+- 守护由 `pythonw` 运行、没有控制台，调用 PowerShell 时必须带 `CREATE_NO_WINDOW`，否则每 5 秒弹出一个命令行窗口（实测出现过）。
 - 没有 SIGHUP：直接关掉终端窗口时 `claude-safe` 可能来不及删租约，守护按进程是否存活清理。
 
-### 待实机验证
+### Windows 实测（2026-10-15，Anaconda Python 3.9 + PyYAML 6.0，Clash Verge TUN）
 
-- Windows 版 Claude Code 是否调用 `BROWSER`。不调用时，登录页按 `c` 复制授权链接，粘贴到专用 Chrome 打开。
-- 提示框、快捷方式启动、CIM 查询耗时。
-- TUN 开启时守护到 listener 的 loopback 连接正常。
+- 已验证：链路检查读取 `clash-verge.yaml`（含中文和 emoji 节点名）、两个探针确认出口、经守护转发、停止后释放端口；TUN 开启时守护到 listener 的 loopback 连接正常；PowerShell CIM 查 Chrome 进程约 0.8 秒。
+- 已验证：china-proxy 的 `detect_network.py` 判定 `mode: tun`，TUN 网卡名为 `Meta`，耗时约 3 秒。
+- 待验证：Windows 版 Claude Code 是否调用 `BROWSER`（不调用时，登录页按 `c` 复制授权链接到专用 Chrome 打开）；提示框；双击快捷方式打开窗口（SSH 会话里看不到桌面窗口，需要用户在桌面上确认）。
+
+### Windows 排查经验
+
+- 快捷方式双击没反应：先用 `Test-Path` 检查快捷方式的目标和参数里的脚本是否存在；`pythonw.exe` 不显示报错，把同一条命令换成 `python.exe` 在终端里运行看错误。曾遇到别的工具建了快捷方式、却从未把程序装到它指向的目录。
+- 守护检查失败时，分别用 `curl.exe -x http://127.0.0.1:7890` 测普通海外、`-x http://127.0.0.1:17891` 测专用 listener：两者都 502 说明 Clash 节点不可用；只有 17891 失败多半是落地节点没配前置（`dialer-proxy` 为空）。
+- 不经代理访问 HTTPS 报 `CRYPT_E_REVOCATION_OFFLINE`、要等几十秒：是证书吊销检查访问海外失败，先修海外连通性；单次诊断可加 `--ssl-no-revoke`。
+- 远程替换守护后要在用户桌面会话里重启：SSH 会话里启动的进程看不到也活不久。用一次性计划任务（`Register-ScheduledTask` 配 `-LogonType Interactive`，运行后 `Unregister-ScheduledTask`）启动 `exit_guard.py serve`；不要用 PowerShell 5.1 调 `schtasks /TR`，带空格的路径会被拆开。
+- 执行策略默认是 Restricted，`$PROFILE` 不会加载（里面的 `claude` 函数也不生效）：`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`。
+
+### 从 Mac 远程排查 Windows
+
+1. Windows 管理员 PowerShell：`Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0`，`Set-Service sshd -StartupType Automatic; Start-Service sshd`；把默认 shell 设为 PowerShell（注册表 `HKLM:\SOFTWARE\OpenSSH` 的 `DefaultShell`）。
+2. 为这台机器单独生成密钥；管理员账户的公钥写入 `%ProgramData%\ssh\administrators_authorized_keys` 并限制为 Administrators 和 SYSTEM 可访问；防火墙只放行局域网的 22 端口。
+3. 远程命令用 `powershell -NoProfile -NonInteractive -OutputFormat Text -EncodedCommand <UTF-16LE base64>` 执行，避免引号转义、profile 报错和 CLIXML 输出；脚本里先设 `[Console]::OutputEncoding=[Text.Encoding]::UTF8`。Windows 自带的是 PowerShell 5.1，`foreach` 语句后不能直接接管道。
+4. 大文件用 `scp` 传到用户目录再移动；编码命令受 32K 命令行长度限制。
+5. SSH 会话里启动的程序不显示在用户桌面，GUI 结果由用户确认；递归遍历浏览器 profile 很慢，搜索时限制深度或目录。
 
 ## Clash Verge 在 Windows
 
 - TUN 需要在设置里启用服务模式（或以管理员运行），开启后用 `Get-NetAdapter` 确认 Mihomo 的 TUN 网卡已启用，再用 `Find-NetRoute` 核对目标路由。
 - 订阅脚本、规则扩展、listener 的做法与 macOS 相同，见 [Claude 分流](clash-routing.md) 和 china-proxy 的 Clash 参考。
-- 用 china-proxy 的 `py -3 scripts/detect_network.py` 判断 TUN；它在 Windows 上读 `tasklist`、注册表和 `Find-NetRoute`（待实机验证）。
+- 用 china-proxy 的 `py -3 scripts/detect_network.py` 判断 TUN；它在 Windows 上读 `tasklist`、注册表和 `Find-NetRoute`，实测 TUN 网卡名为 `Meta`。

@@ -240,6 +240,15 @@ class LeaseAndProcessTests(Base):
                  '{} --user-data-dir=/other/profile'.format(chrome)]
         self.assertEqual(guard.dedicated_browser_lines(self.config, lines), lines[:1])
 
+    def test_windows_process_listing_opens_no_console_window(self):
+        from unittest import mock
+        done = mock.Mock(stdout="chrome.exe --user-data-dir=x\n")
+        with mock.patch.object(guard, "IS_WINDOWS", True), \
+                mock.patch.object(guard.subprocess, "run", return_value=done) as run:
+            self.assertEqual(guard.process_command_lines(), ["chrome.exe --user-data-dir=x"])
+        self.assertEqual(run.call_args.args[0][0], "powershell")
+        self.assertEqual(run.call_args.kwargs["creationflags"], 0x08000000)
+
     def test_browser_watch_caches(self):
         calls = []
         watch = guard.BrowserWatch(self.config, ttl=60, lister=lambda: calls.append(1) or [])

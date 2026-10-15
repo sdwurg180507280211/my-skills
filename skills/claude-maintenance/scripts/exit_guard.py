@@ -35,6 +35,7 @@ import urllib.request
 from urllib.parse import urlsplit
 
 IS_WINDOWS = os.name == "nt"
+CREATE_NO_WINDOW = 0x08000000  # subprocess.CREATE_NO_WINDOW, defined on Windows only
 SERVICE = "claude-exit-guard"
 VERSION = 3
 STATUS_PATH = "/__claude_guard_status"
@@ -169,7 +170,9 @@ def process_command_lines():
     else:
         command = ["ps", "-axo", "args="] if sys.platform == "darwin" else ["ps", "-eo", "args="]
     try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+        # Under pythonw every console child (powershell) would flash its own window.
+        flags = {"creationflags": CREATE_NO_WINDOW} if IS_WINDOWS else {}
+        result = subprocess.run(command, capture_output=True, text=True, timeout=15, **flags)
     except (OSError, subprocess.SubprocessError):
         return []
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]

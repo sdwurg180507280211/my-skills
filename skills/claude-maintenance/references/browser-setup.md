@@ -30,14 +30,34 @@
 - `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost` 让域名全部交给代理解析。
 - `--disable-quic`、`--force-webrtc-ip-handling-policy=disable_non_proxied_udp` 关闭不经代理的 UDP。
 - `--disable-background-networking`、`--disable-sync` 关闭后台更新和账号同步。
+- `--lang=en-US`、`--accept-lang=en-US,en`：界面语言和网页看到的语言默认英文，由配置 `chrome_lang` 控制，设为空字符串则不加。
 
 专用 profile 已有 Chrome 实例时，新启动会复用旧进程。守护发现旧实例的代理参数不同会提示并停止；保存工作后完整退出专用实例再打开，普通 Chrome 不受影响。
 
-## 三、桌面入口
+## 三、英文环境
+
+守护默认用英文启动，新建的 profile 一开始就是英文界面。已有 profile 或手动调整时，逐项核对：
+
+| 项目 | 位置 | 目标 |
+|---|---|---|
+| 界面语言 | `chrome://settings/languages` 的显示语言；Windows 存在 `Local State` 的 `intl.app_locale` | English |
+| 网页语言 | 同一页面的语言列表；`Preferences` 的 `intl.accept_languages` | 只留 English |
+| 拼写检查 | `Preferences` 的 `spellcheck.dictionaries` | 空或 `en-US` |
+| 翻译 | 设置里关闭翻译提示 | 关闭 |
+| 默认搜索引擎 | `chrome://settings/search` | 非中文引擎 |
+| profile 名称 | `chrome://settings/manageProfile` | 英文名；用中文界面建的 profile 会叫"您的 Chrome" |
+
+- macOS 上 Chrome 忽略 `--lang`，界面语言和网页 `Intl` 默认语言跟随该应用的 `AppleLanguages`（系统「语言与地区 → 应用程序」），同一应用的所有 profile 共用；`--accept-lang` 仍然生效，且会覆盖 profile 里存的语言。实测把 `-AppleLanguages (en-US)` 当启动参数能切换界面，但 Chrome 会把 `(en-US)` 当网址多开一个标签页，不采用。
+- 只想让专用浏览器英文、普通 Chrome 保持中文时，专用浏览器改用官方 Chrome Beta（应用标识 `com.google.Chrome.beta`，与正式版分开）：安装后 `defaults write com.google.Chrome.beta AppleLanguages -array en-US`，守护配置的 `chrome` 指向 `/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta`。旧 profile 可直接沿用，但会被升级到 Beta 的版本，之后不宜再用正式版打开。下载地址用 `https://dl.google.com/chrome/mac/universal/beta/googlechromebeta.dmg`（不带 `universal` 的旧地址返回的是过期版本）；从 DMG 复制后若严格签名校验报 `detritus`，用 `xattr -cr` 清掉 Finder 扩展属性再校验。
+- 切换浏览器前完整退出专用实例：同一 profile 不能被两个 Chrome 同时打开，旧守护也只按配置里的路径识别进程。
+- Chrome 运行时会覆盖 `Preferences`，改文件前先完整退出专用实例；在设置页里改则不用。
+- 系统时区、区域格式和字体不属于浏览器语言设置，这里不改。
+
+## 四、桌面入口
 
 桌面入口只调用 `exit_guard.py --config <配置> browser`，参数都从配置文件读取，不依赖终端环境变量。macOS 用 `.app`，Windows 用 `.lnk` 快捷方式，做法见 [平台差异](platforms.md)。系统默认浏览器保持不变。
 
-## 四、验收
+## 五、验收
 
 | 项目 | 通过条件 |
 |---|---|

@@ -15,6 +15,7 @@
 - `claude-maintenance` 支持 Windows：新增跨平台 `scripts/exit_guard.py`（出口守护、专用 Chrome、`claude-safe` CLI 入口、OAuth helper、wrapper 生成，单一 JSON 配置，CLI 代理设置由端口自动生成），处理 Windows 的进程判断、端口独占绑定、文件锁和提示框差异；探测改用 urllib、链路检查改用 PyYAML。新增 `references/platforms.md` 对照两平台路径、命令、shell 约定与安装步骤，并列出待 Windows 实机验证项。浏览器文档改为基于守护，删除被取代的 sh 启动示例及其测试；新增 26 项离线测试和 Windows 场景评测。
 - `china-proxy/scripts/detect_network.py` 支持 Windows：进程用 `tasklist`，配置目录用 `%APPDATA%`，系统代理读注册表（含 PAC），路由用 `Find-NetRoute` 和 `Get-NetAdapter` 判断是否经过 Mihomo/Wintun 网卡；输出新增 `platform`，`through_utun` 改为通用的 `through_tun`。新增 Windows 合成测试，macOS 实测结果不变。
 - Windows 实机验证与修复：`exit_guard.py` 在 Windows 上调用 PowerShell 时加 `CREATE_NO_WINDOW`，修复 `pythonw` 下每 5 秒弹出命令行窗口；`platforms.md` 记录实测结果（守护链路与出口检查、转发、TUN 网卡 `Meta`、检测器）、快捷方式失效与落地缺前置等排查经验、执行策略、远程 SSH 排查方法和用一次性计划任务在桌面会话重启守护。
+- 专用 Chrome 默认英文：`exit_guard.py` 加 `--lang=en-US` 和 `--accept-lang=en-US,en`（配置 `chrome_lang`，空字符串关闭）；实测 `--accept-lang` 会覆盖 profile 中存的中文。`browser-setup.md` 新增英文环境核对表；记录 macOS 上 Chrome 忽略 `--lang`、`-AppleLanguages` 启动参数会多开标签页，改用 Chrome Beta 单独设置应用语言，以及正确的 Beta 下载地址和签名校验注意事项。
 - 精简防御性内容：删除账号风险参考，常见报错区分并入认证文档；清理改为按风险分级，低风险的已结束任务临时文件和缓存确认一次即可移入废纸篓；去掉各文档重复的禁令，安全底线集中在 SKILL.md。
 - README 与 Infrastructure bundle 登记新技能，保持既有版本和其他本地修改；技能安装不修改本机账号、代理或数据。
 

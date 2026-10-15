@@ -289,6 +289,15 @@ class CliAndBrowserTests(Base):
         self.assertEqual(args[-1], "https://claude.ai/oauth?x=1&y=2")
         self.assertTrue(guard.chrome_command(self.config)[-1].endswith("/__claude_guard_status"))
 
+    def test_chrome_language_defaults_to_english_and_can_be_disabled(self):
+        args = guard.chrome_command(self.config)
+        self.assertIn("--lang=en-US", args)
+        self.assertIn("--accept-lang=en-US,en", args)
+        self.assertTrue(args[-1].endswith("/__claude_guard_status"))
+        self.assertIn("--accept-lang=ja", guard.chrome_command(dict(self.config, chrome_lang="ja")))
+        plain = guard.chrome_command(dict(self.config, chrome_lang=""))
+        self.assertFalse([a for a in plain if a.startswith(("--lang=", "--accept-lang="))])
+
     def test_open_url_rejects_non_http(self):
         self.assertEqual(guard.open_url(self.config, ["file:///etc/passwd"]), 2)
         self.assertEqual(guard.open_url(self.config, []), 2)

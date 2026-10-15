@@ -56,6 +56,7 @@ DEFAULTS = {
     "probe_timeout_seconds": 8,
     "idle_exit_seconds": 60,
     "strip_api_env": True,
+    "chrome_lang": "en-US",
 }
 
 
@@ -484,7 +485,17 @@ def chrome_command(config, urls=None):
             "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--disable-quic",
             "--disable-background-networking", "--disable-sync", "--no-first-run",
             "--no-default-browser-check", "--new-window",
+            *language_flags(config.get("chrome_lang", "")),
             *(urls or [guard_url(config) + STATUS_PATH])]
+
+
+def language_flags(lang):
+    """UI language (ignored by Chrome on macOS) and Accept-Language; "" keeps Chrome's own choice."""
+    if not lang:
+        return []
+    primary = lang.split("-")[0]
+    accept = lang if primary == lang else "{},{}".format(lang, primary)
+    return ["--lang=" + lang, "--accept-lang=" + accept]
 
 
 class BrowserWatch:

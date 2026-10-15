@@ -30,6 +30,7 @@
 | `claude_bin` | 官方 Claude Code 可执行文件（`cli` 子命令需要） |
 | `browser_helper` | `install-wrappers` 生成的 OAuth helper 路径 |
 | `check_interval_seconds` 等 | 默认 20 / 10 / 40 秒，见下节 |
+| `chrome_lang` | 默认 `en-US`：专用 Chrome 的界面语言和 Accept-Language；空字符串表示不指定 |
 | `strip_api_env` | 默认 true：为官方订阅登录移除继承的 `ANTHROPIC_*` 和第三方 provider 变量；合法 API 用户设为 false |
 
 CLI 用的代理变量由 `listen_host`/`listen_port` 在运行时生成，写到 `state_dir/cli-network-settings.json` 并通过 `--settings` 传入，不再手写第二份。

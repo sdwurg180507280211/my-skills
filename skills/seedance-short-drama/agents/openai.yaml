@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seedance AI 短剧导演"
+  short_description: "火山方舟 Seedance API 按 Claude 当导演的流程做 AI 短剧：剧本定稿、连戏与分段表、三视图与音色、分段生成、自动审片、剪辑表出片"
+  default_prompt: "使用 $seedance-short-drama，按导演流程把我的想法做成一集 AI 短剧，每次花钱前先报价。"

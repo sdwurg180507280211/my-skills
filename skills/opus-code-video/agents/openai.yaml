@@ -1,0 +1,4 @@
+interface:
+  display_name: "纯 Opus 写代码做视频"
+  short_description: "不调视频模型，用代码画 MG 动画、合成配乐，豆包配音按逐字时间戳对节拍和字幕，渲染质检出封面"
+  default_prompt: "使用 $opus-code-video，把我的题目做成一支带旁白和字幕的代码动画短片，旁白稿先给我确认。"

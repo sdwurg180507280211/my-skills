@@ -17,6 +17,8 @@
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
+| [`seedance-short-drama`](skills/seedance-short-drama) | Utility | 火山方舟 Seedance API「Claude 当导演」做 AI 短剧：需求与剧本定稿、连戏/分段表、Seedream 三视图与音色参考、分段生成、自动审片、剪辑表出片；处理写实人像审核与成本控制 |
+| [`opus-code-video`](skills/opus-code-video) | Utility | 纯 Claude 写代码做视频（不调视频模型）：网页逐帧渲染 MG 动画、代码合成配乐、豆包语音旁白按逐字时间戳重排节拍与字幕、渲染质检与封面；按风格提供示例片 |
 | [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：导出 PNG、PPTX↔PPTM 转换、批量改文字/字体/颜色、生成 WPS 宏 |
 | [`meeting-reimbursement-audit`](skills/meeting-reimbursement-audit) | Utility | 会议核销参会明细与正脸截图审核：在线时长 ≥20 分钟、人数 ≥10 人、逐对名单重合率，只总结问题 |
 | [`openmaic`](skills/openmaic) | Utility | OpenMAIC 互动课堂的配置、生成、启动方式和 SDK 二次开发指导 |
@@ -195,6 +197,8 @@ my-skills/
 │   ├── google-flow-story-video/
 │   ├── meeting-reimbursement-audit/
 │   ├── openmaic/
+│   ├── opus-code-video/
+│   ├── seedance-short-drama/
 │   ├── spec-mode/
 │   ├── wechat-account-bookmarks/
 │   ├── wechat-android-shortcuts/
@@ -222,6 +226,18 @@ GitHub Actions 会检查：Skill/frontmatter/Marketplace 结构、vendored upstr
 
 ```bash
 python3 -B -m unittest discover -s skills/meeting-reimbursement-audit/tests -v
+```
+
+AI 短剧 Seedance 技能另有离线测试（不联网、不需要密钥；剪辑端到端测试需要 `ffmpeg`，片尾卡测试需要 Pillow 和中文字体，缺少时自动跳过）：
+
+```bash
+python3 -B -m unittest discover -s skills/seedance-short-drama/tests -v
+```
+
+纯代码视频技能的离线测试（合成时间戳和 ffmpeg 输出，不联网）：
+
+```bash
+python3 -B -m unittest discover -s skills/opus-code-video/tests -v
 ```
 
 ## 维护原则

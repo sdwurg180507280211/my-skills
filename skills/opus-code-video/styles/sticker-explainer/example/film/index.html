@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>按下回车之后的 1 秒</title>
+<style>
+  @font-face { font-family: NS; src: url(/assets/fonts/NotoSansSC-VF.ttf); font-weight: 100 900; }
+  @font-face { font-family: IN; src: url(/assets/fonts/Inter-VF.ttf); font-weight: 100 900; }
+  @font-face { font-family: JB; src: url(/assets/fonts/JetBrainsMono-VF.ttf); font-weight: 100 800; }
+  html, body { margin: 0; background: #E9EEF2; overflow: hidden; }
+  svg { display: block; }
+  text { font-family: IN, NS; font-kerning: normal; }
+  .mono { font-family: JB, NS; }
+</style>
+</head>
+<body>
+<svg id="s" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <pattern id="dots" width="60" height="60" patternUnits="userSpaceOnUse">
+      <circle cx="30" cy="30" r="2.6" fill="#C8D2DB"/>
+    </pattern>
+    <!-- 贴纸：粗白描边 + 柔和投影 -->
+    <filter id="stk" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="9" result="d"/>
+      <feFlood flood-color="#ffffff"/><feComposite in2="d" operator="in" result="w"/>
+      <feGaussianBlur in="d" stdDeviation="9" result="b"/><feOffset in="b" dy="9" result="bo"/>
+      <feFlood flood-color="#1d2b38" flood-opacity="0.20"/><feComposite in2="bo" operator="in" result="sh"/>
+      <feMerge><feMergeNode in="sh"/><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/><feOffset dy="10" result="o"/>
+      <feFlood flood-color="#1d2b38" flood-opacity="0.16"/><feComposite in2="o" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="vig" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#1d2b38" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#1d2b38" stop-opacity="0.13"/>
+    </radialGradient>
+  </defs>
+  <g id="cam"><g id="world"></g></g>
+  <g id="hud"></g>
+  <rect width="1920" height="1080" fill="url(#vig)" pointer-events="none"/>
+</svg>
+<script>
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const SLATE = '#263646', MID = '#5E6E7E', PALE = '#D6DFE7', LINE = '#B7C3CE', BG = '#E9EEF2';
+const ACC = '#FF5A36', BLUE = '#3D6FE0', WHITE = '#FFFFFF', SCREEN = '#DCE5ED';
+
+// ---------- 工具 ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, x) => a + (b - a) * x;
+const gauss = x => Math.exp(-x * x);
+const ease = {
+  outCubic: x => 1 - (1 - x) ** 3,
+  outQuint: x => 1 - (1 - x) ** 5,
+  inCubic: x => x ** 3,
+  inOutCubic: x => x < .5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2,
+  inOutQuint: x => x < .5 ? 16 * x ** 5 : 1 - (-2 * x + 2) ** 5 / 2,
+  outBack: (x, s = 1.70158) => 1 + (s + 1) * (x - 1) ** 3 + s * (x - 1) ** 2,
+};
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, o = {}) {
+  const e = el('text', {
+    x, y, 'font-size': o.size || 36, 'font-weight': o.weight || 500, fill: o.fill || SLATE,
+    'text-anchor': o.anchor || 'start', 'letter-spacing': o.ls ?? 0,
+  }, parent);
+  if (o.mono) e.setAttribute('class', 'mono');
+  e.textContent = s;
+  return e;
+}
+const U = [];                      // 每帧要更新的函数
+const on = f => U.push(f);
+const tr = (g, x, y, s = 1, r = 0) => g.setAttribute('transform', `translate(${x.toFixed(2)},${y.toFixed(2)}) rotate(${r.toFixed(3)}) scale(${s.toFixed(4)})`);
+
+// 贴纸/元素弹入：from 缩放 → 1，带一点回弹；out 时淡出
+function popper(g, x, y, t0, o = {}) {
+  const dur = o.dur ?? .42, rot = o.rot ?? 0, drop = o.drop ?? 0, from = o.from ?? .35;
+  on(t => {
+    const p = P(t, t0, t0 + dur);
+    if (p <= 0) { g.setAttribute('opacity', 0); return; }
+    let s = lerp(from, 1, ease.outBack(p, 2.0)), op = clamp(p * 3.5);
+    const r = rot * (1 - ease.outCubic(p)), dy = -drop * (1 - ease.inOutCubic(Math.min(1, p * 1.25)));
+    if (o.out != null) { const q = P(t, o.out, o.out + (o.outDur ?? .3)); op *= 1 - q; s *= 1 - .15 * q; }
+    g.setAttribute('opacity', op.toFixed(3));
+    tr(g, x, y + dy, s * (o.scale ?? 1), r);
+  });
+}
+// 文字淡入上移
+function rise(e, t0, o = {}) {
+  const dur = o.dur ?? .45, dy = o.dy ?? 22;
+  on(t => {
+    const p = ease.outCubic(P(t, t0, t0 + dur));
+    let op = p;
+    if (o.out != null) op *= 1 - P(t, o.out, o.out + .3);
+    e.setAttribute('opacity', op.toFixed(3));
+    e.setAttribute('transform', `translate(0,${((1 - p) * dy).toFixed(2)})`);
+  });
+}
+function rrect(parent, x, y, w, h, r, fill, extra = {}) {
+  return el('rect', Object.assign({ x, y, width: w, height: h, rx: r, fill }, extra), parent);
+}
+const W = document.getElementById('world'), CAM = document.getElementById('cam'), HUD = document.getElementById('hud');
+
+// ---------- 图标（以 0,0 为中心） ----------
+function laptop(g) {
+  rrect(g, -125, -160, 250, 165, 16, SLATE);
+  rrect(g, -110, -145, 220, 135, 7, SCREEN);
+  el('path', { d: 'M-158,8 H158 L176,30 Q178,38 168,38 H-168 Q-178,38 -176,30 Z', fill: '#8E9DAB' }, g);
+  rrect(g, -32, 8, 64, 9, 4.5, '#71808E');
+  return g;
+}
+function server(g, color = SLATE) {
+  for (let i = 0; i < 3; i++) {
+    const y = -105 + i * 70;
+    rrect(g, -95, y, 190, 60, 13, color);
+    el('circle', { cx: -66, cy: y + 30, r: 8, fill: i === 0 ? ACC : '#8FE3C0' }, g);
+    for (let k = 0; k < 2; k++) rrect(g, -40, y + 20 + k * 14, 100 - k * 30, 7, 3.5, 'rgba(255,255,255,.35)');
+  }
+  return g;
+}
+function browserWin(g, w, h, bar = 90) {
+  rrect(g, -w / 2, -h / 2, w, h, 26, WHITE);
+  el('path', { d: `M${-w / 2},${-h / 2 + bar} V${-h / 2 + 26} Q${-w / 2},${-h / 2} ${-w / 2 + 26},${-h / 2} H${w / 2 - 26} Q${w / 2},${-h / 2} ${w / 2},${-h / 2 + 26} V${-h / 2 + bar} Z`, fill: '#DCE4EB' }, g);
+  [ACC, '#F2B544', '#9CC9AA'].forEach((c, i) => el('circle', { cx: -w / 2 + 36 + i * 30, cy: -h / 2 + bar / 2, r: 9.5, fill: c }, g));
+  return g;
+}
+function enterKey(g) {
+  rrect(g, -135, -95, 270, 230, 38, '#B9C6D2');
+  const top = el('g', {}, g);
+  rrect(top, -125, -125, 250, 210, 32, WHITE, { stroke: '#D9E1E8', 'stroke-width': 3 });
+  txt(top, -88, -30, 'Enter', { size: 54, weight: 800, fill: SLATE, ls: 1 });
+  el('path', { d: 'M70,-6 V30 H-40 M-40,30 l26,-22 M-40,30 l26,22', stroke: ACC, 'stroke-width': 13, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, top);
+  return top;
+}
+function lockIcon(g) {
+  const sh = el('path', { d: 'M-42,0 V-48 A42,42 0 0 1 42,-48 V0', stroke: SLATE, 'stroke-width': 20, fill: 'none', 'stroke-linecap': 'round' }, g);
+  rrect(g, -66, -10, 132, 110, 20, ACC);
+  el('circle', { cx: 0, cy: 34, r: 13, fill: WHITE }, g);
+  rrect(g, -5.5, 38, 11, 30, 5, WHITE);
+  return sh;
+}
+function certIcon(g) {
+  rrect(g, -125, -88, 250, 176, 14, WHITE, { stroke: '#C9D3DC', 'stroke-width': 3 });
+  rrect(g, -110, -73, 220, 146, 8, 'none', { stroke: ACC, 'stroke-opacity': .35, 'stroke-width': 3 });
+  txt(g, -88, -24, '证书', { size: 36, weight: 800 });
+  rrect(g, -88, 6, 110, 9, 4.5, PALE); rrect(g, -88, 28, 80, 9, 4.5, PALE); rrect(g, -88, 50, 96, 9, 4.5, PALE);
+  el('path', { d: 'M58,42 l-14,40 l16,-8 l10,14 l6,-42 Z M82,42 l14,40 l-16,-8 l-10,14 l-6,-42 Z', fill: BLUE }, g);
+  el('circle', { cx: 70, cy: 30, r: 30, fill: ACC }, g);
+  el('circle', { cx: 70, cy: 30, r: 19, fill: 'none', stroke: WHITE, 'stroke-width': 4 }, g);
+  return g;
+}
+function keyIcon(g, color) {
+  el('circle', { cx: -62, cy: 0, r: 36, fill: 'none', stroke: color, 'stroke-width': 22 }, g);
+  rrect(g, -30, -11, 140, 22, 8, color);
+  rrect(g, 64, 4, 18, 34, 5, color); rrect(g, 92, 4, 18, 26, 5, color);
+  return g;
+}
+function gear(g, r, teeth, color) {
+  let d = '';
+  for (let i = 0; i < teeth * 4; i++) {
+    const a = i / (teeth * 4) * Math.PI * 2, rr = (i % 4 < 2) ? r : r * .8;
+    d += (i ? 'L' : 'M') + (Math.cos(a) * rr).toFixed(1) + ',' + (Math.sin(a) * rr).toFixed(1);
+  }
+  el('path', { d: d + 'Z', fill: color }, g);
+  el('circle', { cx: 0, cy: 0, r: r * .32, fill: BG }, g);
+  return g;
+}
+function docIcon(g) {
+  el('path', { d: 'M-88,-112 H44 L88,-68 V112 H-88 Z', fill: WHITE }, g);
+  el('path', { d: 'M44,-112 V-68 H88 Z', fill: '#C9D3DC' }, g);
+  txt(g, 0, 8, '</>', { size: 64, weight: 800, fill: ACC, anchor: 'middle', mono: true });
+  [40, 62, 84].forEach((y, i) => rrect(g, -58, y, [116, 90, 104][i], 9, 4.5, PALE));
+  return g;
+}
+function drawerIcon(g) {
+  rrect(g, -100, -80, 200, 160, 18, SLATE);
+  for (let i = 0; i < 2; i++) {
+    rrect(g, -84, -64 + i * 72, 168, 56, 10, '#3B4E61');
+    rrect(g, -26, -42 + i * 72, 52, 12, 6, PALE);
+  }
+  return g;
+}
+function magnifier(g) {
+  el('circle', { cx: 0, cy: 0, r: 46, fill: 'rgba(255,255,255,.35)', stroke: SLATE, 'stroke-width': 14 }, g);
+  el('path', { d: 'M33,33 L78,78', stroke: SLATE, 'stroke-width': 20, 'stroke-linecap': 'round' }, g);
+  return g;
+}
+function stamp(g, s, color = ACC, w = 210) {
+  const r = el('g', { transform: 'rotate(-9)' }, g);
+  rrect(r, -w / 2, -40, w, 80, 14, 'rgba(255,255,255,.88)', { stroke: color, 'stroke-width': 7 });
+  txt(r, 0, 15, s, { size: 42, weight: 900, fill: color, anchor: 'middle', ls: 2 });
+  return g;
+}
+
+// 贴纸容器：外层负责位置/动画，内层挂描边滤镜
+function sticker(parent, draw, filter = 'stk') {
+  const outer = el('g', { opacity: 0 }, parent);
+  const inner = el('g', { filter: `url(#${filter})` }, outer);
+  const ret = draw(inner);
+  return { g: outer, inner, ret };
+}
+
+// ---------- 节拍 ----------
+let C, EV;
+
+// 镜头飞到 42% 时目的地基本进入画面，基础元素从这时开始弹出
+const arrive = f => f[0] + (f[1] - f[0]) * .42;
+
+// ---------- 场景搭建 ----------
+function build() {
+  const ev = EV;
+  // 画布底：点阵
+  el('rect', { x: -3000, y: -2000, width: 14000, height: 10000, fill: BG }, W);
+  el('rect', { x: -3000, y: -2000, width: 14000, height: 10000, fill: 'url(#dots)' }, W);
+
+  // ===== 地铁线路：总线 + 各站垂线（总览时看到全貌） =====
+  const ST = [[1190, 382], [2400, 372], [4790, 372], [4790, 1872], [2490, 1872], [290, 1872]];
+  const routePts = [ST[0], [1190, 200], [2400, 200], ST[1], [2400, 200], [4790, 200], ST[2], [4790, 200], [6700, 200], [6700, 1700],
+    [4790, 1700], ST[3], [4790, 1700], [2490, 1700], ST[4], [2490, 1700], [290, 1700], ST[5]];
+  const segLen = []; let total = 0;
+  for (let i = 1; i < routePts.length; i++) { const l = Math.hypot(routePts[i][0] - routePts[i - 1][0], routePts[i][1] - routePts[i - 1][1]); segLen.push(l); total += l; }
+  const lenAt = idx => segLen.slice(0, idx).reduce((a, b) => a + b, 0);       // 到第 idx 个点的长度
+  const stIdx = [0, 3, 6, 11, 14, 17];
+  const stLen = stIdx.map(lenAt);
+  const pointAt = L => {
+    let acc = 0;
+    for (let i = 0; i < segLen.length; i++) {
+      if (L <= acc + segLen[i] || i === segLen.length - 1) {
+        const f = clamp((L - acc) / segLen[i]);
+        return [lerp(routePts[i][0], routePts[i + 1][0], f), lerp(routePts[i][1], routePts[i + 1][1], f)];
+      }
+      acc += segLen[i];
+    }
+  };
+  const routeD = 'M' + routePts.map(p => p.join(',')).join(' L');
+  const routeBase = el('path', { d: routeD, fill: 'none', stroke: LINE, 'stroke-width': 10, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, W);
+  const routeHot = el('path', { d: routeD, fill: 'none', stroke: ACC, 'stroke-width': 10, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, W);
+  const tagTimes = [ev.ch1_tag, ev.ch2_tag, ev.ch3_tag, ev.ch4_tag, ev.ch5_tag, ev.ch6_tag];
+  on((t, cam) => {
+    // 线路随章节推进：到第 k 站时画到第 k 站
+    let L = 0;
+    for (let k = 0; k < 6; k++) if (t >= tagTimes[k] - .6) L = stLen[k] * (k === 0 ? 1 : 1);
+    for (let k = 1; k < 6; k++) { const p = ease.inOutCubic(P(t, tagTimes[k] - 1.4, tagTimes[k] - .2)); if (p > 0 && p < 1) L = lerp(stLen[k - 1], stLen[k], p); }
+    const sw = 10 / Math.min(1, cam.z * 1.5);
+    routeBase.setAttribute('stroke-dasharray', `${L} ${total + 10}`);
+    routeBase.setAttribute('stroke-width', sw);
+    // 回放：亮线沿全程跑一遍
+    const rp = ease.inOutCubic(P(t, ev.replay[0], ev.replay[1]));
+    routeHot.setAttribute('stroke-dasharray', `${rp * total} ${total + 10}`);
+    routeHot.setAttribute('stroke-width', sw * 1.15);
+    routeHot.setAttribute('opacity', t > ev.fly8[0] ? 1 - P(t, ev.fly8[0], ev.fly8[0] + .5) : 1);
+  });
+
+  // ===== 章节标签 =====
+  const tagTitles = ['读懂网址', 'DNS 问路：把名字换成 IP', 'TCP 三次握手', 'TLS 加密握手', '请求与响应', '画出页面'];
+  const circles = [];
+  tagTitles.forEach((title, i) => {
+    const [x, y] = ST[i], t0 = tagTimes[i];
+    const cg = el('g', { opacity: 0 }, W);
+    el('circle', { cx: 0, cy: 0, r: 42, fill: ACC, filter: 'url(#stk)' }, cg);
+    txt(cg, 0, 17, String(i + 1), { size: 48, weight: 800, fill: WHITE, anchor: 'middle' });
+    circles.push(cg);
+    const tg = el('g', {}, W);
+    const tt = txt(tg, x + 72, y + 21, title, { size: 62, weight: 800, ls: 1 });
+    const mark = el('path', { d: '', stroke: ACC, 'stroke-opacity': .28, 'stroke-width': 20, 'stroke-linecap': 'round', fill: 'none' }, tg);
+    tg.insertBefore(mark, tt);
+    let mw = 0;
+    on((t, cam) => {
+      if (!mw) mw = tt.getComputedTextLength();
+      // 圆：弹入；总览时放大并在回放经过时跳一下
+      const p = P(t, t0, t0 + .45);
+      const big = ease.inOutCubic(P(t, ev.pull[0], ev.pull[1])) * (1 - ease.inOutCubic(P(t, ev.fly7[0], ev.fly7[1])));
+      const passT = ev.replay[0] + (ev.replay[1] - ev.replay[0]) * (stLen[i] / total);
+      const bump = gauss((t - passT) / .09) * .35;
+      const s = p <= 0 ? 0 : lerp(.3, 1, ease.outBack(p, 2.4)) * (1 + 1.9 * big + bump);
+      cg.setAttribute('opacity', clamp(p * 4));
+      tr(cg, x, y, s);
+      const q = ease.outCubic(P(t, t0 + .12, t0 + .55));
+      tt.setAttribute('opacity', q); tt.setAttribute('transform', `translate(${(-30 * (1 - q)).toFixed(1)},0)`);
+      const m = ease.inOutCubic(P(t, t0 + .4, t0 + .85));
+      mark.setAttribute('d', m > 0 ? `M${x + 76},${y + 26} H${x + 76 + mw * m}` : '');
+    });
+  });
+
+  // ===== 0 钩子 + ① 读懂网址：浏览器 =====
+  const BX = 1550, BY = 680;
+  const bw = sticker(W, g => browserWin(g, 800, 520));
+  popper(bw.g, BX, BY, .05, { dur: .5, from: .8, rot: -2 });
+  const addr = el('g', { opacity: 0 }, W);
+  rrect(addr, BX - 280, BY - 240, 655, 52, 26, '#F4F7FA');
+  const pre = txt(addr, BX - 252, BY - 203, 'https://', { size: 30, weight: 600, fill: ACC, mono: true });
+  const base = txt(addr, BX - 252, BY - 203, 'example.com', { size: 30, weight: 600, fill: SLATE, mono: true });
+  const suf = txt(addr, 0, BY - 203, '/', { size: 30, weight: 600, fill: ACC, mono: true });
+  const caret = rrect(addr, 0, BY - 230, 3.5, 34, 1.5, SLATE);
+  let preW = 0, baseW = 0;
+  on(t => {
+    if (!preW) { preW = pre.getComputedTextLength(); baseW = base.getComputedTextLength(); }
+    addr.setAttribute('opacity', clamp((t - .3) * 4));
+    const p = ease.inOutCubic(P(t, ev.https, ev.https + .5));
+    pre.setAttribute('opacity', p); pre.setAttribute('transform', `translate(${(-16 * (1 - p)).toFixed(1)},0)`);
+    base.setAttribute('transform', `translate(${(preW * p).toFixed(2)},0)`);
+    const sx = BX - 252 + preW * p + baseW + 2;
+    suf.setAttribute('x', sx.toFixed(2)); suf.setAttribute('opacity', p);
+    caret.setAttribute('x', (sx + (p > .5 ? 20 : 0) + 2).toFixed(2));
+    caret.setAttribute('opacity', (t < ev.enter_land || (t > ev.ch1_tag && t < ev.cache[0])) && Math.floor(t * 2.2) % 2 === 0 ? 1 : 0);
+  });
+  // 浏览器内容区：加载条（钩子）
+  const load = rrect(W, BX - 400, BY - 170, 0, 6, 3, ACC);
+  on(t => { const p = P(t, ev.enter_land, ev.fly1[0] + .1); load.setAttribute('width', (800 * ease.outCubic(p)).toFixed(1)); load.setAttribute('opacity', 1 - P(t, ev.fly1[0] + .1, ev.fly1[0] + .5)); });
+  // 浏览器里的骨架（还没有内容）
+  const skel = el('g', {}, W);
+  [[0, 330, 26], [0, 520, 18], [0, 470, 18], [0, 500, 18]].forEach(([dx, w, h], i) => rrect(skel, BX - 330 + dx, BY - 110 + i * 46 + (i ? 30 : 0), w, h, h / 2, '#EEF2F6'));
+  on(t => skel.setAttribute('opacity', 1 - P(t, ev.ch1_tag - .2, ev.ch1_tag + .2)));
+
+  // 回车键：从上方砸下
+  const ek = sticker(W, g => enterKey(g));
+  const KX = 1840, KY = 1010;
+  on(t => {
+    const g = ek.g, p = P(t, .0, ev.enter_land);
+    if (t < .0) { g.setAttribute('opacity', 0); return; }
+    g.setAttribute('opacity', 1);
+    let y = KY - 700 * (1 - ease.inCubic(p)), sx = 1, sy = 1;
+    if (t >= ev.enter_land) {
+      const k = t - ev.enter_land, damp = Math.exp(-k * 9) * Math.cos(k * 32);
+      sx = 1 + .14 * damp; sy = 1 - .14 * damp; y = KY;
+    }
+    const fade = P(t, ev.fly1[1] + .2, ev.fly1[1] + .6);
+    g.setAttribute('opacity', 1 - fade);
+    g.setAttribute('transform', `translate(${KX},${y.toFixed(1)}) rotate(${(-8 * (1 - ease.outCubic(P(t, 0, ev.enter_land + .2)))).toFixed(2)}) scale(${sx.toFixed(3)},${sy.toFixed(3)})`);
+    // 按下：键帽下沉
+    const press = gauss((t - ev.enter_land - .08) / .1);
+    ek.ret.setAttribute('transform', `translate(0,${(16 * press).toFixed(2)})`);
+  });
+  // 冲击波
+  const ring = el('circle', { cx: KX, cy: KY, r: 0, fill: 'none', stroke: ACC, 'stroke-width': 8 }, W);
+  on(t => { const p = P(t, ev.enter_land, ev.enter_land + .55); ring.setAttribute('r', (140 + 260 * ease.outCubic(p)).toFixed(1)); ring.setAttribute('opacity', p > 0 && p < 1 ? (1 - p) * .8 : 0); ring.setAttribute('stroke-width', 10 * (1 - p) + 1); });
+
+  // 片名
+  const TX = 250;
+  const t1 = txt(W, TX, 640, '按下回车', { size: 150, weight: 900, ls: 4 });
+  const t2g = el('g', {}, W);
+  const t2 = txt(t2g, TX, 820, '之后的', { size: 150, weight: 900, ls: 4 });
+  const t2n = txt(t2g, TX + 486, 820, '1', { size: 190, weight: 900, fill: ACC });
+  const t2s = txt(t2g, TX + 610, 820, '秒', { size: 150, weight: 900, ls: 4 });
+  const sub = txt(W, TX + 6, 912, '浏览器替你跑完了 6 步', { size: 44, weight: 600, fill: MID, ls: 2 });
+  const hl = el('path', { d: '', stroke: ACC, 'stroke-opacity': .25, 'stroke-width': 30, 'stroke-linecap': 'round' }, W);
+  W.insertBefore(hl, t1);
+  [t1, t2g].forEach((e, i) => on(t => {
+    const t0 = i ? ev.title2 : ev.title1, p = P(t, t0, t0 + .32);
+    const s = p <= 0 ? 1.4 : lerp(1.4, 1, ease.outBack(p, 1.6));
+    const out = P(t, ev.fly1[0], ev.fly1[0] + .45);
+    e.setAttribute('opacity', (clamp(p * 3) * (1 - out)).toFixed(3));
+    e.setAttribute('transform', `translate(${TX},${i ? 760 : 590}) scale(${s.toFixed(4)}) translate(${-TX},${i ? -760 : -590})`);
+  }));
+  on(t => { const p = ease.inOutCubic(P(t, ev.title2 + .3, ev.title2 + .75)); hl.setAttribute('d', p > 0 ? `M${TX + 480},${790} H${TX + 480 + 210 * p}` : ''); hl.setAttribute('opacity', 1 - P(t, ev.fly1[0], ev.fly1[0] + .45)); });
+  rise(sub, ev.sub, { out: ev.fly1[0] });
+
+  // ① 内容
+  const c1a = txt(W, 1210, 610, '是网址，不是搜索词 → 自动补上 https://', { size: 31, weight: 600 });
+  const c1b = txt(W, 1210, 668, '再查本机：以前来过吗？有没有记下它的 IP？', { size: 31, weight: 600 });
+  rise(c1a, ev.ch1_cap, { out: ev.fly2[0] + .5 }); rise(c1b, ev.cache[0] - .4, { out: ev.fly2[0] + .5 });
+  const caches = [
+    [1400, 810, g => browserWin(g, 210, 150, 34), '浏览器缓存'],
+    [1720, 810, g => drawerIcon(g), '系统缓存'],
+  ];
+  caches.forEach(([x, y, d, label], i) => {
+    const s = sticker(W, d);
+    popper(s.g, x, y, ev.cache[i], { rot: i ? 6 : -6, scale: .7 });
+    const lb = txt(W, x, y + 102, label, { size: 26, weight: 600, fill: MID, anchor: 'middle' });
+    rise(lb, ev.cache[i] + .15);
+    const st = el('g', { opacity: 0 }, W); stamp(st, '没记过', ACC, 190);
+    on(t => {
+      const p = P(t, ev.cross[i], ev.cross[i] + .22);
+      st.setAttribute('opacity', p > 0 ? 1 : 0);
+      tr(st, x, y + 4, p > 0 ? lerp(1.8, .78, ease.outCubic(p)) : 0);
+    });
+  });
+
+  // ===== ② DNS =====
+  const nodes = {
+    me: [2560, 860, '你的电脑', g => laptop(g)],
+    res: [3180, 860, '递归解析服务器', g => server(g)],
+    root: [3880, 540, '根服务器', g => server(g, '#3B4E61')],
+    tld: [4110, 870, '.com 顶级域服务器', g => server(g, '#3B4E61')],
+    auth: [3880, 1150, 'example.com 权威服务器', g => server(g, BLUE)],
+  };
+  const nodeT = { me: arrive(ev.fly2), res: arrive(ev.fly2) + .2, root: ev.dns[1][0] - .15, tld: ev.dns[3][0] - .15, auth: ev.dns[5][0] - .15 };
+  for (const k in nodes) {
+    const [x, y, label, d] = nodes[k];
+    const s = sticker(W, d);
+    popper(s.g, x, y, nodeT[k], { scale: k === 'me' ? .82 : .72 });
+    const lb = txt(W, x, y + (k === 'me' ? 80 : 108), label, { size: 28, weight: 700, anchor: 'middle', mono: false });
+    rise(lb, nodeT[k] + .15);
+  }
+  const dnsMsg = [
+    ['me', 'res', 'example.com 的 IP 是多少？', ACC],
+    ['res', 'root', '问 example.com', ACC],
+    ['root', 'res', '去问 .com 服务器', BLUE],
+    ['res', 'tld', '问 example.com', ACC],
+    ['tld', 'res', '去问它的权威服务器', BLUE],
+    ['res', 'auth', '问 example.com', ACC],
+    ['auth', 'res', '203.0.113.10', BLUE],
+    ['res', 'me', '203.0.113.10', BLUE],
+  ];
+  dnsMsg.forEach(([a, b, label, col], i) => {
+    const A = nodes[a], B = nodes[b];
+    const hold = i < dnsMsg.length - 1 ? ev.dns[i + 1][0] + .1 : ev.ip_land + .05;
+    message(A, B, ev.dns[i][0], ev.dns[i][1], label, { color: col, edge: 120, keep: false, hold });
+  });
+  // IP 落在电脑屏幕上
+  const ipS = el('g', { opacity: 0 }, W);
+  rrect(ipS, -118, -30, 236, 60, 12, BLUE);
+  txt(ipS, 0, 11, '203.0.113.10', { size: 30, weight: 700, fill: WHITE, anchor: 'middle', mono: true });
+  popper(ipS, 2560, 783, ev.ip_land, { from: 1.6, dur: .3 });
+  // 旁白已经说了"拿回 IP 地址"，这里只留示例地址的说明，放在电脑下面，给底部字幕让位
+  const ipCap2 = txt(W, 2560, 1000, '203.0.113.10 是专门留给文档举例的地址', { size: 24, weight: 500, fill: MID, anchor: 'middle' });
+  rise(ipCap2, ev.ip_land + .4);
+
+  // ===== ③ TCP =====
+  const LX = 4950, RX = 6250;
+  pair(LX, RX, 520, arrive(ev.fly3), 1150);
+  const tcpMsg = [['SYN', '我想连你', 700, 780, ACC], ['SYN-ACK', '收到，我也准备好了', 860, 940, BLUE], ['ACK', '好，开始传吧', 1020, 1100, ACC]];
+  tcpMsg.forEach(([k, gloss, y1, y2, col], i) => {
+    const fwd = i !== 1;
+    message([fwd ? LX : RX, y1], [fwd ? RX : LX, y2], ev.tcp[i][0], ev.tcp[i][1], k, { color: col, edge: 0, keep: true, gloss, mono: true });
+  });
+  const est = el('g', { opacity: 0 }, W);
+  rrect(est, -130, -36, 260, 72, 36, SLATE, { filter: 'url(#shadow)' });
+  txt(est, 0, 12, '连接建立 ✓', { size: 32, weight: 700, fill: WHITE, anchor: 'middle' });
+  popper(est, 5600, 628, ev.tcp_ok, { from: .6 });
+
+  // ===== ④ TLS =====
+  pair(LX, RX, 2020, arrive(ev.fly4), 2440);
+  message([LX, 2200], [RX, 2260], ev.tls[0][0], ev.tls[0][1], 'ClientHello', { color: ACC, edge: 0, keep: true, gloss: '我支持这些加密方式', mono: true });
+  message([RX, 2330], [LX, 2390], ev.tls[1][0], ev.tls[1][1], 'ServerHello + 证书', { color: BLUE, edge: 0, keep: true, gloss: '就用这种，这是我的证书', mono: true });
+  const ce = sticker(W, g => certIcon(g));
+  popper(ce.g, 5150, 2610, ev.tls[1][1] - .05, { rot: -8, scale: .8, out: ev.fly5[0] + .6 });
+  const mg = sticker(W, g => magnifier(g));
+  on(t => {
+    const p = P(t, ev.cert_check - .15, ev.cert_ok + .1);
+    mg.g.setAttribute('opacity', p > 0 && t < ev.cert_ok + .4 ? 1 - P(t, ev.cert_ok + .15, ev.cert_ok + .4) : 0);
+    const a = ease.inOutCubic(p) * Math.PI * 1.3;
+    tr(mg.g, 5150 - 40 + Math.cos(a) * 50, 2590 + Math.sin(a) * 26, .7, -10);
+  });
+  const ok = el('g', { opacity: 0 }, W); stamp(ok, '可信 ✓', ACC, 200);
+  on(t => { const p = P(t, ev.cert_ok, ev.cert_ok + .2); ok.setAttribute('opacity', p > 0 ? 1 - P(t, ev.fly5[0] + .6, ev.fly5[0] + .9) : 0); tr(ok, 5265, 2540, p > 0 ? lerp(1.8, .7, ease.outCubic(p)) : 0); });
+  // 两把钥匙从两端飞到中间合成一把
+  const keyL = sticker(W, g => keyIcon(g, ACC)), keyR = sticker(W, g => keyIcon(g, BLUE));
+  const KC = [5760, 2610];
+  [[keyL, LX + 60, 2120], [keyR, RX - 60, 2120]].forEach(([k, x0, y0], i) => on(t => {
+    const p = ease.inOutCubic(P(t, ev.keys - .55, ev.keys));
+    const vis = t > ev.keys - .6 && t < ev.keys + .02;
+    k.g.setAttribute('opacity', vis ? 1 : 0);
+    const arc = Math.sin(p * Math.PI) * -120;
+    tr(k.g, lerp(x0, KC[0], p), lerp(y0, KC[1], p) + arc, .55, (i ? 1 : -1) * 20 * (1 - p));
+  }));
+  const keyM = sticker(W, g => keyIcon(g, SLATE));
+  popper(keyM.g, KC[0], KC[1], ev.keys, { from: 1.5, dur: .35, scale: .75, out: ev.fly5[0] + .6 });
+  const flash = el('circle', { cx: KC[0], cy: KC[1], r: 10, fill: 'none', stroke: ACC, 'stroke-width': 6 }, W);
+  on(t => { const p = P(t, ev.keys, ev.keys + .4); flash.setAttribute('r', 60 + 140 * ease.outCubic(p)); flash.setAttribute('opacity', p > 0 && p < 1 ? 1 - p : 0); });
+  const lk = sticker(W, g => lockIcon(g));
+  popper(lk.g, 6280, 2620, ev.keys + .1, { scale: .75, out: ev.fly5[0] + .6 });
+  on(t => {
+    const p = P(t, ev.lock - .12, ev.lock);
+    lk.ret.setAttribute('transform', `translate(0,${(-30 * (1 - ease.inCubic(p))).toFixed(2)})`);
+  });
+
+  // ===== ⑤ 请求与响应 =====
+  const HL = 2650, HR = 3950, HY = 2230;
+  pair(HL, HR, HY, arrive(ev.fly5), null);
+  message([HL + 150, 2120], [HR - 150, 2120], ev.req[0], ev.req[1], 'GET /', { color: ACC, edge: 0, keep: true, gloss: '请把首页给我', mono: true });
+  const gears = el('g', { opacity: 0 }, W);
+  const g1 = gear(el('g', {}, gears), 46, 9, ACC), g2 = gear(el('g', {}, gears), 30, 7, SLATE);
+  on(t => {
+    gears.setAttribute('opacity', clamp(P(t, ev.work[0] - .2, ev.work[0])) * (1 - P(t, ev.resp[0] + .2, ev.resp[0] + .5)));
+    const a = ease.inOutCubic(P(t, ev.work[0], ev.work[1])) * 360;
+    g1.setAttribute('transform', `translate(${HR + 150},${HY - 150}) rotate(${a})`);
+    g2.setAttribute('transform', `translate(${HR + 212},${HY - 92}) rotate(${-a * 1.45 + 12})`);
+  });
+  const workT = txt(W, HR + 260, HY - 132, '服务器准备页面', { size: 26, weight: 600, fill: MID });
+  rise(workT, ev.work[0]);
+  on(t => { if (t > ev.resp[0] + .2) workT.setAttribute('opacity', 1 - P(t, ev.resp[0] + .2, ev.resp[0] + .5)); });
+  message([HR - 150, 2400], [HL + 150, 2400], ev.resp[0], ev.resp[1], '200 OK', { color: BLUE, edge: 0, keep: true, gloss: '给你，这是 HTML', mono: true });
+  const dc = sticker(W, g => docIcon(g));
+  on(t => {
+    const p = ease.inOutCubic(P(t, ev.resp[0], ev.resp[1]));
+    if (t < ev.resp[0]) { dc.g.setAttribute('opacity', 0); return; }
+    dc.g.setAttribute('opacity', 1 - P(t, ev.fly6[0] + .6, ev.fly6[0] + .9));
+    const land = t > ev.resp[1] ? Math.exp(-(t - ev.resp[1]) * 10) * Math.cos((t - ev.resp[1]) * 30) : 0;
+    tr(dc.g, lerp(HR - 120, HL + 40, p), 2560 - Math.sin(p * Math.PI) * 60, .62 * (1 + .1 * land), lerp(10, -6, p));
+  });
+
+  // ===== ⑥ 画出页面 =====
+  const code = el('g', { opacity: 0 }, W);
+  rrect(code, -190, -250, 380, 500, 22, SLATE, { filter: 'url(#stk)' });
+  const lines = [['<html>', 0], ['<head>…</head>', 1], ['<body>', 1], ['<h1>你好</h1>', 2], ['<p>…</p>', 2], ['<img>', 2], ['</body>', 1], ['</html>', 0]];
+  const codeLines = lines.map(([s, ind], i) => txt(code, -150 + ind * 34, -170 + i * 54, s, { size: 30, weight: 600, fill: i === 3 ? '#FFB49F' : '#DCE5ED', mono: true }));
+  popper(code, 440, 2330, arrive(ev.fly6), { rot: -4 });
+  codeLines.forEach((e, i) => on(t => e.setAttribute('opacity', P(t, ev.html + i * .07, ev.html + i * .07 + .1))));
+  const domN = { html: [1010, 2085], head: [880, 2215], body: [1140, 2215], h1: [1010, 2370], p: [1140, 2370], img: [1270, 2370] };
+  const domE = [['html', 'head'], ['html', 'body'], ['body', 'h1'], ['body', 'p'], ['body', 'img']];
+  const domOrder = ['html', 'head', 'body', 'h1', 'p', 'img'];
+  const domStep = (ev.dom[1] - ev.dom[0]) / domOrder.length;
+  domE.forEach(([a, b]) => {
+    const ln = el('path', { d: `M${domN[a][0]},${domN[a][1] + 28} C${domN[a][0]},${domN[a][1] + 80} ${domN[b][0]},${domN[b][1] - 80} ${domN[b][0]},${domN[b][1] - 28}`, stroke: LINE, 'stroke-width': 6, fill: 'none', 'stroke-linecap': 'round', pathLength: 1 }, W);
+    const tb = ev.dom[0] + domOrder.indexOf(b) * domStep;
+    on(t => { const p = ease.outCubic(P(t, tb - .1, tb + .15)); ln.setAttribute('stroke-dasharray', `${p} 1`); });
+  });
+  domOrder.forEach((k, i) => {
+    const g = el('g', { opacity: 0 }, W);
+    const w = k.length * 22 + 44;
+    rrect(g, -w / 2, -28, w, 56, 28, k === 'h1' ? ACC : WHITE, { filter: 'url(#shadow)' });
+    txt(g, 0, 10, k, { size: 28, weight: 700, fill: k === 'h1' ? WHITE : SLATE, anchor: 'middle', mono: true });
+    popper(g, domN[k][0], domN[k][1], ev.dom[0] + i * domStep, { dur: .35 });
+  });
+  const domL = txt(W, 1010, 2490, 'DOM 树', { size: 28, weight: 700, fill: MID, anchor: 'middle' });
+  rise(domL, ev.dom[1] - .1);
+  // CSS 色票
+  const css = el('g', { opacity: 0 }, W);
+  rrect(css, -150, -38, 300, 76, 38, WHITE, { filter: 'url(#shadow)' });
+  txt(css, -112, 11, 'CSS', { size: 28, weight: 800, mono: true });
+  [ACC, BLUE, SLATE].forEach((c, i) => el('circle', { cx: 20 + i * 44, cy: 0, r: 16, fill: c }, css));
+  popper(css, 1010, 2590, ev.css, { rot: 5 });
+  // 页面：先线框（布局）再上色（绘制）
+  const PX = 1655, PY = 2300;
+  const pg = sticker(W, g => browserWin(g, 560, 430, 56));
+  popper(pg.g, PX, PY, ev.layout[0] - .35, { from: .8 });
+  const boxes = [[-240, -125, 480, 64, ACC], [-240, -40, 300, 26, SLATE], [-240, 2, 230, 16, MID], [-240, 32, 260, 16, MID], [-240, 62, 200, 16, MID], [80, -40, 160, 150, BLUE]];
+  boxes.forEach(([x, y, w, h, c], i) => {
+    const wire = rrect(W, PX + x, PY + y, w, h, 8, 'none', { stroke: SLATE, 'stroke-width': 3, 'stroke-dasharray': '10 8', opacity: 0 });
+    const fill = rrect(W, PX + x, PY + y, w, h, 8, c, { opacity: 0 });
+    const tl = ev.layout[0] + i * (ev.layout[1] - ev.layout[0]) / boxes.length;
+    const tp = ev.paint[0] + i * (ev.paint[1] - ev.paint[0]) / boxes.length;
+    on(t => {
+      wire.setAttribute('opacity', P(t, tl, tl + .12) * (1 - P(t, tp, tp + .15)));
+      fill.setAttribute('opacity', P(t, tp, tp + .15));
+    });
+  });
+  const steps = ['解析 HTML', '建 DOM 树', '算样式', '布局', '绘制'];
+  const stepT = [ev.html, ev.dom[0], ev.css, ev.layout[0], ev.paint[0]];
+  let sx = 200;
+  steps.forEach((s, i) => {
+    const e = txt(W, sx, 2690, s, { size: 34, weight: 700, fill: LINE });
+    const nextT = stepT[i + 1] ?? ev.page_done;
+    on(t => {
+      e.setAttribute('fill', t >= stepT[i] ? (t < nextT ? ACC : SLATE) : LINE);
+      e.setAttribute('opacity', 1 - P(t, ev.fly7[0], ev.fly7[0] + .4));
+    });
+    sx += e.getComputedTextLength() + 26;
+    if (i < steps.length - 1) {
+      const a = txt(W, sx, 2690, '→', { size: 34, weight: 700, fill: LINE });
+      on(t => a.setAttribute('opacity', 1 - P(t, ev.fly7[0], ev.fly7[0] + .4)));
+      sx += a.getComputedTextLength() + 26;
+    }
+  });
+  const done = el('g', { opacity: 0 }, W); stamp(done, '页面出来了', ACC, 280);
+  on(t => { const p = P(t, ev.page_done, ev.page_done + .2); done.setAttribute('opacity', p > 0 ? 1 : 0); tr(done, PX + 140, PY + 190, p > 0 ? lerp(1.8, .8, ease.outCubic(p)) : 0); });
+
+  // ===== 高潮：按比例的耗时条 =====
+  const BX0 = 1300, BW = 4200, BYc = 4500, BH = 230;
+  const ms = C.ms, tot = ms.reduce((a, b) => a + b, 0);
+  const chartT = txt(W, BX0, 4160, '这 6 步一共用了多久？', { size: 120, weight: 900, ls: 4 });
+  rise(chartT, ev.fly7[1] - .3, { out: ev.fly8[0], dy: 50 });
+  const segCol = [ACC, SLATE, '#4A5D70', '#6D7F91', BLUE, ACC];
+  const names = ['读网址', 'DNS', 'TCP', 'TLS', '请求响应', '画页面'];
+  let acc = 0;
+  const segs = ms.map((m, i) => {
+    const x0 = BX0 + BW * acc / tot, w = BW * m / tot; acc += m;
+    const r = rrect(W, x0, BYc - BH / 2, 0, BH, 0, segCol[i]);
+    const lab = el('g', { opacity: 0 }, W);
+    const cx = x0 + w / 2;
+    if (i === 0) {
+      txt(lab, x0, BYc - BH / 2 - 44, '① 读网址 ≈1 ms', { size: 76, weight: 700, fill: MID });
+    } else {
+      txt(lab, cx, BYc + BH / 2 + 110, `${'①②③④⑤⑥'[i]} ${names[i]}`, { size: 80, weight: 800, anchor: 'middle' });
+      txt(lab, cx, BYc + BH / 2 + 205, `${m} ms`, { size: 72, weight: 600, fill: MID, anchor: 'middle', mono: true });
+    }
+    return { r, lab, x0, w, i };
+  });
+  const sweepAt = t => ease.inOutCubic(P(t, ev.sweep[0], ev.sweep[1]));    // 0..1 的扫描进度
+  const head = txt(W, 0, BYc - BH / 2 - 40, '', { size: 70, weight: 700, fill: SLATE, anchor: 'middle', mono: true });
+  on(t => {
+    const p = sweepAt(t), xHead = BX0 + BW * p;
+    const out = P(t, ev.fly8[0], ev.fly8[0] + .5);
+    segs.forEach(s => {
+      const w = clamp(xHead - s.x0, 0, s.w);
+      s.r.setAttribute('width', w.toFixed(2));
+      s.r.setAttribute('opacity', 1 - out);
+      s.lab.setAttribute('opacity', (w >= s.w - .5 && p > 0 ? 1 : 0) * (1 - out));
+    });
+    const msNow = Math.round(tot * p);
+    head.textContent = `${msNow} ms`;
+    head.setAttribute('x', Math.max(BX0 + 280, xHead).toFixed(1));
+    head.setAttribute('opacity', p > 0 && t < ev.total ? 1 : 0);
+  });
+  const totG = el('g', { opacity: 0 }, W);
+  txt(totG, 0, 0, '441', { size: 460, weight: 900, fill: ACC, anchor: 'end', ls: -6 });
+  txt(totG, 40, 0, '毫秒', { size: 150, weight: 900, fill: SLATE });
+  txt(totG, 44, -190, '不到半秒', { size: 92, weight: 800, fill: MID });
+  on(t => {
+    const p = P(t, ev.total, ev.total + .3);
+    if (p <= 0) { totG.setAttribute('opacity', 0); return; }
+    const s = lerp(1.9, 1, ease.outBack(p, 1.3));
+    totG.setAttribute('opacity', (clamp(p * 4) * (1 - P(t, ev.fly8[0], ev.fly8[0] + .5))).toFixed(3));
+    tr(totG, 3420, 5390, s);
+  });
+  const note = txt(W, 3400, 5600, '示例：网络往返一次按 50 毫秒算，服务器处理 80 毫秒；实际快慢取决于网络和网站', { size: 58, weight: 500, fill: MID, anchor: 'middle' });
+  rise(note, ev.note, { out: ev.fly8[0], dy: 30 });
+
+  // ===== 结尾 =====
+  const end1 = txt(W, 3400, 6460, '1 秒都不到', { size: 190, weight: 900, anchor: 'middle', ls: 6 });
+  const end2 = txt(W, 3400, 6640, '浏览器已经替你问路、握手、加密、请求、画出页面', { size: 66, weight: 600, fill: MID, anchor: 'middle' });
+  const sign = txt(W, 3400, 6890, (C.brand && C.brand.name) || '', { size: 64, weight: 800, fill: ACC, anchor: 'middle', ls: 4 });
+  rise(end1, ev.end_title, { dy: 60 }); rise(end2, ev.end_sub, { dy: 40 }); rise(sign, ev.sign, { dy: 30 });
+  // 结尾：账号角色跳起来欢呼
+  // 结尾的角色贴纸：cues.json 的 brand.mascot（透明 PNG，约 1.13:1）；没有就不放
+  const mascot = el('g', { opacity: 0 }, W);
+  if (C.brand && C.brand.mascot) el('image', { href: C.brand.mascot, x: -260, y: -230, width: 520, height: 459 }, mascot);
+  on(t => {
+    const p = P(t, ev.end_title - .3, ev.end_title + .25);
+    mascot.setAttribute('opacity', p > 0 ? clamp(p * 3) : 0);
+    const hop = Math.abs(Math.sin((t - ev.end_title) * 3.2)) * 26 * clamp((t - ev.end_title) * 2);   // 落地后原地小跳
+    tr(mascot, 3400, 6040 - hop - 320 * (1 - ease.outBack(p, 1.5)), 1, Math.sin((t - ev.end_title) * 1.6) * 3);
+  });
+
+  // ===== 数据包：在场景之间飞 =====
+  const anchors = [[KX, KY - 60], [BX - 260, BY - 216], [2560, 790], [LX, 450], [LX, 1950], [HL, 2160], [440, 2080]];
+  const flies = [ev.fly1, ev.fly2, ev.fly3, ev.fly4, ev.fly5, ev.fly6];
+  const pk = el('circle', { r: 14, fill: ACC, stroke: WHITE, 'stroke-width': 5 }, W);
+  const trail = el('path', { fill: 'none', stroke: ACC, 'stroke-opacity': .35, 'stroke-linecap': 'round' }, W);
+  const pkPos = (A, B, e) => {
+    const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1, bend = Math.sin(e * Math.PI) * Math.min(260, L * .18);
+    return [lerp(A[0], B[0], e) - dy / L * bend, lerp(A[1], B[1], e) + dx / L * bend];
+  };
+  on((t, cam) => {
+    let pos = null, prev = [];
+    flies.forEach((f, i) => {
+      const a = i === 0 ? ev.packet_out : f[0] - .15;
+      if (t >= a && t <= f[1] + .35) {
+        const e = ease.inOutCubic(P(t, f[0], f[1]));
+        pos = pkPos(anchors[i], anchors[i + 1], e);
+        for (let k = 1; k <= 6; k++) prev.push(pkPos(anchors[i], anchors[i + 1], ease.inOutCubic(P(t - k * .025, f[0], f[1]))));
+        pk.setAttribute('opacity', (clamp((t - a) * 6) * (1 - P(t, f[1] + .1, f[1] + .35))).toFixed(3));
+      }
+    });
+    // 总览回放：沿线路跑一遍
+    if (t >= ev.replay[0] - .1 && t <= ev.replay[1] + .3) {
+      const e = ease.inOutCubic(P(t, ev.replay[0], ev.replay[1]));
+      pos = pointAt(e * total);
+      for (let k = 1; k <= 6; k++) prev.push(pointAt(ease.inOutCubic(P(t - k * .02, ev.replay[0], ev.replay[1])) * total));
+      pk.setAttribute('opacity', (clamp((t - ev.replay[0] + .1) * 8) * (1 - P(t, ev.replay[1] + .05, ev.replay[1] + .3))).toFixed(3));
+    }
+    if (!pos) { pk.setAttribute('opacity', 0); trail.setAttribute('d', ''); return; }
+    const r = 14 / cam.z;
+    pk.setAttribute('cx', pos[0].toFixed(1)); pk.setAttribute('cy', pos[1].toFixed(1));
+    pk.setAttribute('r', r.toFixed(2)); pk.setAttribute('stroke-width', (5 / cam.z).toFixed(2));
+    trail.setAttribute('d', 'M' + [pos, ...prev].map(p => p.map(v => v.toFixed(1)).join(',')).join(' L'));
+    trail.setAttribute('stroke-width', (16 / cam.z).toFixed(2));
+    trail.setAttribute('opacity', pk.getAttribute('opacity'));
+  });
+
+  buildHud();
+  buildSubs();
+}
+
+// ---------- 字幕：按配音逐句对时（cues.json 的 subs 来自豆包返回的逐字时间戳） ----------
+function buildSubs() {
+  (C.subs || []).forEach(sb => {
+    const g = el('g', { opacity: 0 }, HUD);
+    const bg = rrect(g, 0, 962, 0, 70, 35, 'rgba(255,255,255,.92)', { filter: 'url(#shadow)' });
+    const tx = txt(g, 960, 1012, sb.text, { size: 44, weight: 700, anchor: 'middle', ls: 1 });
+    const w = tx.getComputedTextLength() + 64;
+    bg.setAttribute('x', (960 - w / 2).toFixed(1)); bg.setAttribute('width', w.toFixed(1));
+    const [a, b] = sb.t;
+    on(t => {
+      const op = clamp((t - a) / .08) * (1 - clamp((t - b - .05) / .08));
+      g.setAttribute('opacity', op.toFixed(3));
+    });
+  });
+}
+
+// 两端（你的电脑 / 服务器）+ 生命线
+function pair(lx, rx, y, t0, lifeEnd) {
+  const a = sticker(W, g => laptop(g)), b = sticker(W, g => server(g, BLUE));
+  popper(a.g, lx, y, t0, { scale: .72 }); popper(b.g, rx, y, t0 + .12, { scale: .72 });
+  const la = txt(W, lx, y + 75, '你的电脑', { size: 28, weight: 700, anchor: 'middle' });
+  const lb = txt(W, rx, y + 108, 'example.com 服务器', { size: 28, weight: 700, anchor: 'middle' });
+  rise(la, t0 + .15); rise(lb, t0 + .25);
+  if (lifeEnd) [[lx, y + 105], [rx, y + 135]].forEach(([x, y0]) => {
+    const l = el('path', { d: `M${x},${y0} V${lifeEnd}`, stroke: LINE, 'stroke-width': 5, 'stroke-dasharray': '4 14', 'stroke-linecap': 'round', fill: 'none' }, W);
+    on(t => l.setAttribute('opacity', P(t, t0 + .3, t0 + .7)));
+  });
+}
+
+// 消息：箭头线从 A 画到 B，标签随箭头头部移动；keep=true 时到达后标签停在线的中点
+function message(A, B, t0, t1, label, o = {}) {
+  const ax = A[0], ay = A[1], bx = B[0], by = B[1];
+  const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+  const e0 = o.edge ?? 0;
+  const sx = ax + ux * e0, sy = ay + uy * e0, ex = bx - ux * e0, ey = by - uy * e0;
+  const col = o.color || ACC;
+  const line = el('path', { d: `M${sx},${sy} L${ex},${ey}`, stroke: col, 'stroke-width': 6, 'stroke-linecap': 'round', fill: 'none', pathLength: 1 }, W);
+  const ah = el('path', { d: 'M0,0 L-26,-14 L-26,14 Z', fill: col }, W);
+  const pill = el('g', { opacity: 0 }, W);
+  const pt = txt(pill, 0, 11, label, { size: o.mono ? 32 : 30, weight: 700, fill: WHITE, anchor: 'middle', mono: !!o.mono });
+  const bg = rrect(pill, 0, -28, 0, 56, 28, col);
+  pill.insertBefore(bg, pt);
+  let gl = null;
+  if (o.gloss) gl = txt(pill, 0, 72, o.gloss, { size: 27, weight: 600, fill: SLATE, anchor: 'middle' });
+  let w = 0;
+  const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  on(t => {
+    if (!w) { w = pt.getComputedTextLength() + 48; bg.setAttribute('x', -w / 2); bg.setAttribute('width', w); }
+    const p = ease.inOutCubic(P(t, t0, t1));
+    const hx = lerp(sx, ex, p), hy = lerp(sy, ey, p);
+    const lineOut = o.keep ? 0 : P(t, t1 + .35, t1 + .7);
+    line.setAttribute('stroke-dasharray', `${p} 1`);
+    line.setAttribute('opacity', t >= t0 ? (1 - lineOut * .75) : 0);
+    ah.setAttribute('opacity', t >= t0 ? (1 - lineOut * .75) : 0);
+    ah.setAttribute('transform', `translate(${hx.toFixed(1)},${hy.toFixed(1)}) rotate(${ang.toFixed(2)})`);
+    // 标签：行进中压在线上、跟在箭头头部后面；保留的到达后停在线的中点，不保留的停在终点附近直到 hold
+    const back = w / 2 + 34;
+    const fx = hx - ux * back, fy = hy - uy * back;
+    const settle = ease.outCubic(P(t, t1, t1 + .3));
+    let px = fx, py = fy;
+    if (o.keep) { px = lerp(fx, (sx + ex) / 2, settle); py = lerp(fy, (sy + ey) / 2, settle); }
+    const hold = o.hold ?? t1 + .45;
+    const op = clamp((t - t0) * 6) * (o.keep ? 1 : 1 - P(t, hold - .2, hold));
+    pill.setAttribute('opacity', t >= t0 ? op.toFixed(3) : 0);
+    const pop = 1 + .12 * gauss((t - t1) / .08);
+    pill.setAttribute('transform', `translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${pop.toFixed(3)})`);
+    if (gl) gl.setAttribute('opacity', P(t, t1, t1 + .3));
+  });
+}
+
+// ---------- HUD：左上进度、右上示例耗时 ----------
+function buildHud() {
+  const ev = EV;
+  const g = el('g', { opacity: 0 }, HUD);
+  rrect(g, 1120, 46, 736, 64, 32, 'rgba(255,255,255,.86)', { filter: 'url(#shadow)' });
+  const dots = [];
+  for (let i = 0; i < 6; i++) {
+    const c = el('circle', { cx: 1158 + i * 42, cy: 78, r: 14.5, fill: PALE }, g);
+    txt(g, 1158 + i * 42, 85.5, String(i + 1), { size: 19, weight: 800, fill: WHITE, anchor: 'middle' });
+    dots.push(c);
+  }
+  const name = txt(g, 1416, 87, '', { size: 26, weight: 700 });
+  el('path', { d: 'M1556,62 V94', stroke: LINE, 'stroke-width': 2 }, g);
+  txt(g, 1576, 86, '示例耗时', { size: 22, weight: 600, fill: MID });
+  const msT = txt(g, 1826, 89, '0 ms', { size: 32, weight: 700, anchor: 'end', mono: true });
+  const tags = [ev.ch1_tag, ev.ch2_tag, ev.ch3_tag, ev.ch4_tag, ev.ch5_tag, ev.ch6_tag];
+  const ends = [ev.fly2[0], ev.fly3[0], ev.fly4[0], ev.fly5[0], ev.fly6[0], ev.page_done];
+  const short = ['读懂网址', 'DNS 问路', 'TCP 握手', 'TLS 加密', '请求响应', '画出页面'];
+  on(t => {
+    const vis = clamp(P(t, ev.ch1_tag - .1, ev.ch1_tag + .3)) * (1 - P(t, ev.pull[0], ev.pull[0] + .4));
+    g.setAttribute('opacity', vis);
+    let cur = 0;
+    tags.forEach((tt, i) => { if (t >= tt - .3) cur = i; });
+    dots.forEach((c, i) => c.setAttribute('fill', i < cur ? SLATE : i === cur ? ACC : PALE));
+    name.textContent = short[cur];
+    // 每章结束时累加该步的示例耗时
+    let msv = 0;
+    ends.forEach((te, i) => { msv += C.ms[i] * ease.outCubic(P(t, te - .5, te)); });
+    msT.textContent = `${Math.round(msv)} ms`;
+  });
+}
+
+// ---------- 镜头 ----------
+let KEYS;
+function camKeys() {
+  const ev = EV;
+  const k = (t, x, y, z, fly = false) => ({ t, x, y, z, fly });
+  return [
+    k(0, 1095, 790, 1.04), k(ev.fly1[0], 1110, 784, 1.0),
+    k(ev.fly1[1], 1560, 660, 1.45, true), k(ev.fly2[0], 1566, 664, 1.48),
+    k(ev.fly2[1], 3290, 830, .9, true), k(ev.fly3[0], 3300, 836, .925),
+    k(ev.fly3[1], 5600, 800, 1.0, true), k(ev.fly4[0], 5606, 806, 1.02),
+    k(ev.fly4[1], 5600, 2300, 1.0, true), k(ev.fly5[0], 5606, 2304, 1.02),
+    k(ev.fly5[1], 3300, 2300, 1.0, true), k(ev.fly6[0], 3296, 2304, 1.02),
+    k(ev.fly6[1], 1100, 2300, 1.0, true), k(ev.pull[0], 1104, 2302, 1.025),
+    k(ev.pull[1], 3420, 1540, .272, true), k(ev.fly7[0], 3420, 1540, .266),
+    k(ev.fly7[1], 3400, 4720, .4, true), k(ev.fly8[0], 3400, 4730, .41),
+    k(ev.fly8[1], 3400, 6500, .62, true), k(C.duration, 3400, 6490, .645),
+  ];
+}
+function camAt(t) {
+  let i = 0;
+  while (i < KEYS.length - 2 && t >= KEYS[i + 1].t) i++;
+  const a = KEYS[i], b = KEYS[i + 1];
+  const p = P(t, a.t, b.t);
+  if (!b.fly) return { x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p), z: lerp(a.z, b.z, p) };
+  const e = ease.inOutQuint(p);
+  // 缩放走对数插值，飞行途中略微拉远一点（回形针式的"抬镜头"）
+  const lz = Math.exp(lerp(Math.log(a.z), Math.log(b.z), ease.inOutCubic(p)));
+  const dist = Math.hypot(b.x - a.x, b.y - a.y);
+  const dip = Math.min(.22, dist / 12000) * Math.sin(Math.PI * p) * (b.z > .5 && a.z > .5 ? 1 : 0);
+  return { x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), z: lz * (1 - dip) };
+}
+
+// ---------- 入口 ----------
+window.DEMO = { width: 1920, height: 1080, fps: 30, duration: 60 };
+window.renderAt = async (t) => {
+  const cam = camAt(t);
+  CAM.setAttribute('transform', `translate(960,540) scale(${cam.z.toFixed(5)}) translate(${(-cam.x).toFixed(2)},${(-cam.y).toFixed(2)})`);
+  for (const f of U) f(t, cam);
+};
+(async () => {
+  C = await (await fetch('cues.json')).json();
+  EV = C.ev;
+  window.DEMO.duration = C.duration;
+  await document.fonts.load('800 40px NS', '按下回车之后的秒'); await document.fonts.load('600 30px JB', 'example'); await document.fonts.load('800 40px IN', 'Enter');
+  await document.fonts.ready;
+  KEYS = camKeys();
+  build();
+  const q = new URLSearchParams(location.search);
+  await window.renderAt(+(q.get('t') || 0));
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

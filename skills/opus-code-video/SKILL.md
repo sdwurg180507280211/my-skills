@@ -26,7 +26,7 @@ description: 纯靠 Claude 写代码做视频，不调视频或图片生成模�
 ## 流程
 
 1. **定题**：只问看不出来的事：发在哪（横屏还是竖屏）、给谁看、要不要旁白、片长。科普的事实要能核实；示意数字标"示例"，网址和 IP 用文档专用的（`example.com`、`203.0.113.x`）。
-2. **节拍表**（`film/cues_base.json`）：钩子在开头 0.5 秒内出现，每章 6～10 秒，高潮在 60～85% 处，结尾停 1 秒以上。画面和配乐都只从这里读时间，不在代码里写死秒数。
+2. **节拍表**（`film/cues_base.json`）：钩子在开头 0.5 秒内出现，每章 6～10 秒（新概念至少停 7 秒），高潮在 60～85% 处，结尾停 1 秒以上。画面和配乐都只从这里读时间，不在代码里写死秒数。有旁白时可以先定稿配音，再按逐字时间戳生成节拍，见 [render-and-qc.md 的教训](references/render-and-qc.md)。
 3. **关键帧**：先写画面，渲染 6～10 张关键帧（`node harness/render.mjs film --stills …`），逐张看构图、层级、压线、安全区、字号，改到满意再做动作。检查项和这次踩过的坑见 [references/render-and-qc.md](references/render-and-qc.md)。
 4. **配乐**（`film/audio.py`，用工程的 `.venv` 跑）：mgaudio 选配方，音效按节拍表放，砸点前抽空；输出 `film/out/bed.wav`。
 5. **旁白**（可选）：
@@ -37,8 +37,8 @@ description: 纯靠 Claude 写代码做视频，不调视频或图片生成模�
    - 混音：`scripts/mix_voice.py <工程>`，说话处配乐压低 8 dB，整体 -14 LUFS。
    - 删掉和旁白重复的画面文字，给底部字幕让位。
 6. **渲染**：`node harness/render.mjs film --mb 8 --workers 4`。运动模糊用 8 次采样，3 次会出叠影。
-7. **质检**：`scripts/qc.py <成片> --duration <秒>`，每 1～2 秒抽帧拼图看节奏，自评打分，写出最弱的三点。AAC 峰值超了就降音量重新封装，画面不用重渲。
-8. **交付**：成片、封面（`cover.py` 出横 4:3、竖 3:4）、发布用的标题和简介，以及一句话说明用量和花费。发布注意事项和角色贴纸做法见 [references/publish.md](references/publish.md)。
+7. **质检**：`scripts/qc.py <成片> --duration <秒>`，每 1～2 秒抽帧拼图看节奏（镜头落地后空着的画面、拉远后看不清的字），自评打分，写出最弱的三点，并补进 render-and-qc.md 的教训里。AAC 峰值超了就降音量重新封装，画面不用重渲。
+8. **交付**：成片、封面（`cover.py` 出横 4:3、竖 3:4；也可以用生图网关画插画、再叠标题）、发布用的标题和简介，以及一句话说明用量和花费。发布注意事项和角色贴纸做法见 [references/publish.md](references/publish.md)。
 
 ## 规矩
 

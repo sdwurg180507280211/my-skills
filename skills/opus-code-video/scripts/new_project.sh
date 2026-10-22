@@ -53,4 +53,4 @@ fetch 'jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf' JetBrainsMono-VF.ttf
 fetch notosanssc/OFL.txt OFL-NotoSansSC.txt
 fetch inter/OFL.txt OFL-Inter.txt
 fetch jetbrainsmono/OFL.txt OFL-JetBrainsMono.txt
-echo "工程就绪：$PROJ（风格 $STYLE）。先出关键帧：node harness/render.mjs film --stills 1,5,10"
+echo "工程就绪：${PROJ}（风格 ${STYLE}）。先出关键帧：node harness/render.mjs film --stills 1,5,10"

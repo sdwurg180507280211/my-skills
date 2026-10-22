@@ -29,6 +29,7 @@
       "skills": [
         "./skills/github-aliyun-deploy",
         "./skills/china-proxy",
+        "./skills/mac-windows-lan",
         "./skills/claude-maintenance"
       ]
     },

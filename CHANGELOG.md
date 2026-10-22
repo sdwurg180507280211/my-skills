@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Mac 与 Windows 局域网互访
+
+### Added
+- `mac-windows-lan`：两台电脑的双向 SSH、公钥登录、SFTP 和换网排查；区分物理接口与虚拟网卡、Windows 网络类别与防火墙范围、监听可用与实际跨机认证。
+- 附 Windows 只读检查脚本及两端配置参考；Windows 脚本已实测，Mac 端尚未实测，不保存个人地址、账号、公钥或私钥。
+- README 与 Infrastructure bundle 登记新技能。
+
 ## Unreleased — AI 视频（Seedance 短剧与纯代码动画）
 
 ### Added

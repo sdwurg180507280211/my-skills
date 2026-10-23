@@ -46,6 +46,7 @@
   - 13 项离线测试（合成时间戳与 ffmpeg 输出，不联网），4 条行为评测。通用版 `retime.py` 用示例片的真实配音数据回归，结果与手写版逐项一致。
 
 ### Changed
+- `opus-code-video` 流程加"剧本与审稿"一步：旁白稿交 DeepSeek 两路审（复用 seedance-short-drama 的 `review_script.py`），意见交用户批，定稿前不配音、不渲染整片；故事类先做无声版。
 - `seedance-short-drama` 加上"剧本审好再生成"的关口（起因是做医生 IP 样片时，剧本经过多轮外部审稿才定下来，用户要求以后写完剧本先审、不能草率生成视频）：
   - 新增 `scripts/review_script.py`：把剧本交给 DeepSeek（默认 `deepseek-flash`、推理强度 `max`），分两路审：A 专业事实与真实性，B 台词表演与可拍性；`--prev` 复查上一轮，自动判断两路是否"必须改：无"。密钥读 `DEEPSEEK_API_KEY` 或 `~/.config/deepseek/api-key`，固定直连。6 项离线测试。
   - SKILL.md：剧本两路都"必须改：无"之前不做素材、不生成视频；写实题材先过"真实关"；花钱前先给用户看分镜预览图和提示词汇总，分辨率等选项让用户明确选。

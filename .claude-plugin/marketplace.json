@@ -23,7 +23,7 @@
     },
     {
       "name": "infrastructure-skills",
-      "description": "Deployment, network utilities, and Claude maintenance, dedicated browser, routing and fixed-exit workflows",
+      "description": "Deployment, Mac-Windows LAN SSH/SFTP and remote configuration maintenance, network utilities, and Claude maintenance, cloud-compatible reporting controls, dedicated browser, routing and fixed-exit workflows",
       "source": "./",
       "strict": false,
       "skills": [
@@ -35,7 +35,7 @@
     },
     {
       "name": "utility-skills",
-      "description": "General-purpose automation utilities",
+      "description": "General-purpose automation utilities, medical WeChat styling and draft-readback checks, technical WeChat template-slot validation, text-only audience workbooks without formulas, and scoped meeting audits with screenshot avatar-presence and poster-background checks",
       "source": "./",
       "strict": false,
       "skills": [
@@ -50,6 +50,7 @@
         "./skills/baidu-netdisk",
         "./skills/meeting-reimbursement-audit",
         "./skills/audience-report-formatting",
+        "./skills/meeting-materials-upload",
         "./skills/baidu-netdisk-syncspace-recovery",
         "./skills/google-flow-story-video",
         "./skills/seedance-short-drama",

@@ -13,7 +13,7 @@
 | [`codex-dream-skin-fix`](skills/codex-dream-skin-fix) | Development | 排查 Codex Dream Skin 主题不生效：CDP 端口错位诊断与让 Dream Skin 重新持有会话 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连规则集、DNS 与链式代理 |
-| [`mac-windows-lan`](skills/mac-windows-lan) | Infrastructure | 一台 Mac 与一台 Windows 的双向 SSH、公钥登录、SFTP，以及换网后的地址和防火墙排查 |
+| [`mac-windows-lan`](skills/mac-windows-lan) | Infrastructure | Mac/Windows 局域网 SSH/SFTP、非默认密钥找回、换网排查、UTF-8 远程命令与保留出口绑定的 Clash 配置同步 |
 | [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 数据清理、认证与配置维护、跨平台出口守护与专用 Chrome、Clash 分流/DNS 与固定出口（macOS/Windows） |
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
@@ -21,14 +21,15 @@
 | [`seedance-short-drama`](skills/seedance-short-drama) | Utility | 火山方舟 Seedance API「Claude 当导演」做 AI 短剧：需求与剧本定稿、连戏/分段表、Seedream 三视图与音色参考、分段生成、自动审片、剪辑表出片；处理写实人像审核与成本控制 |
 | [`opus-code-video`](skills/opus-code-video) | Utility | 纯 Claude 写代码做视频（不调视频模型）：网页逐帧渲染 MG 动画、代码合成配乐、豆包语音旁白按逐字时间戳重排节拍与字幕、渲染质检与封面；按风格提供示例片 |
 | [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：导出 PNG、PPTX↔PPTM 转换、批量替换母版/封面背景、批量改文字/字体/颜色、生成 WPS 宏 |
-| [`meeting-reimbursement-audit`](skills/meeting-reimbursement-audit) | Utility | 会议核销参会明细与正脸截图审核：在线时长 ≥20 分钟、人数 ≥10 人、逐对名单重合率，只总结问题 |
+| [`meeting-reimbursement-audit`](skills/meeting-reimbursement-audit) | Utility | 会议核销审核：报告在线时长、人数与逐对名单重合率；截图仅查是否有头像，海报仅查主体背景异常，正常透明留白不判不合格，各类问题分表 |
 | [`audience-report-formatting`](skills/audience-report-formatting) | Utility | 直播观众Excel/CSV按参考表整理为10列纯文本测试副本：完整日期、测试ID/IP、首末进出跨度、超过20分钟记录数统计；不改原始时间 |
+| [`meeting-materials-upload`](skills/meeting-materials-upload) | Utility | 拜耳社区会议资料批量建会与上传：实时对账、Aura/S3/登记、断点续传、最新版替换、授权删除重建与审核状态核对 |
 | [`openmaic`](skills/openmaic) | Utility | OpenMAIC 互动课堂的配置、生成、启动方式和 SDK 二次开发指导 |
 | [`wechat-account-bookmarks`](skills/wechat-account-bookmarks) | Utility | 微信公众号 → Edge / Chrome 主页或文章书签 |
 | [`wechat-android-shortcuts`](skills/wechat-android-shortcuts) | Utility | ADB 驱动微信官方“添加到桌面”，创建/检查 Android 公众号或小程序快捷方式 |
 | [`wechat-ios-shortcuts`](skills/wechat-ios-shortcuts) | Utility | 名称 + URL → Apple Web Clip `.mobileconfig` → iPhone/iPad 主屏幕图标 |
 | [`content-research-writer`](skills/content-research-writer) | Utility | 上游 vendored：研究 → 大纲 → 引用 → 高质量文章；用于补足插件市场不可达的主 Writer |
-| [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医荟她健康（女性全生命周期健康科普）的医学约束、品牌与文章样式；复用现成 Writer 和苍何配图/排版/发布 |
+| [`wechat-medical-writer`](skills/wechat-medical-writer) | Utility | 医荟她健康（女性全生命周期健康科普）的医学约束、完整样稿组件与滚动文献、账号隔离与草稿读回；复用现成 Writer 和苍何 |
 | [`wechat-tech-writer`](skills/wechat-tech-writer) | Utility | 小团子Java的软件推荐、工具入门和 AI 实用教程偏好；复用现成 Writer、具体图库案例及苍何排版/发布 |
 | [`wechat-ai-model-writer`](skills/wechat-ai-model-writer) | Utility | AI 模型/价格/免费额度/高性价比渠道情报 → 日报/重大更新/周报选题 → 价格与渠道核验 → 科技情报刊式公众号排版 |
 
@@ -98,6 +99,8 @@ uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
 
 ### Claude 环境清理与专用浏览器
 
+减少额外上报且优先保留云端任务时，按 [功能开关](skills/claude-maintenance/references/features-and-sessions.md) 单独关闭错误报告与会话调查；遥测开关也可能影响远程功能。环境审计按来源区分遗留 API 覆盖和有效专用代理，不一律清空。
+
 [`claude-maintenance`](skills/claude-maintenance/SKILL.md) 按风险分级清理 Claude 本地数据：已结束任务的临时文件和缓存确认一次即可移入废纸篓，会话历史和配置先备份，认证与钥匙串逐项确认。另处理官方订阅与第三方接口冲突、代理残留和 `essential-traffic-only` 等功能开关。
 
 Claude 专属网络也在该技能：[Claude 分流与固定出口](skills/claude-maintenance/references/clash-routing.md)（Claude 域名规则、固定出口组、DNS 策略、专用 listener、验证）和 [出口守护与 CLI 入口](skills/claude-maintenance/references/fixed-exit.md)（公网 IP 校验守护、`claude-safe` 类入口、OAuth 回调排查）。国内直连名单、通用 DNS 和链式代理仍在 `china-proxy`。
@@ -130,6 +133,8 @@ pip3 install markdown requests
 ### 小团子Java：软件推荐与实用技术图文
 
 使用 `wechat-tech-writer`，不把通用软件推荐塞进医学 Skill 或 AI 模型省钱日报。它只维护账号口吻、软件事实边界、具体图库案例的使用规则（默认排版为图库模板 `layout-xiaotuanzi`）、图文交付检查和作为退回方案的简洁技术 CSS；研究写作及配图、排版、发布继续使用成熟上游。
+
+技术模板的说文解字卡紧接导语、先于正文章节；确定性组装脚本支持章节内定义及段首“定义＋后续说明”，提取卡片但保留说明，不重复定义或留下段首句号。交付时检查组件顺序，不只检查存在性。
 
 Codex 中可将 `skills/wechat-tech-writer/` 链接到 `~/.agents/skills/wechat-tech-writer`，并安装 `content-research-writer`；先确认目标不存在，不覆盖旧安装。需要 HTML 时同时安装苍何渲染器及其运行依赖，按技术 Skill 中的 `MD_THEME_DIR` 说明加载完整目录内的 `assets/themes/xiaotuanzi.css`。
 

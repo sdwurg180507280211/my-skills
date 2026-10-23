@@ -22,6 +22,29 @@
 
 ping 被阻断不等于 SSH 不可达。相同地址前缀也可能属于两个互相隔离的网络；同一路由器下有线与无线通常可以互通，不要求接入方式相同。Wi-Fi 换网通常无需重建密钥或重装服务。仅一端换到外网时，解释现有私网地址需要可达路由；VPN/异地组网是另一个明确目标。
 
+## 找回已有连接使用的密钥
+
+用户说“以前其他 Agent 连过，但不知道密码/私钥”时，先找本机已有入口，而不是立即要求密码或生成新密钥：
+
+1. 用 `ssh -G <用户>@<地址>` 检查最终生效的 `user`、`hostname`、`port`、`identityfile`、`identityagent`、`proxycommand`、`proxyjump`。配置可能经 `Include` 引入；按键白名单报告，转发命令里可能含凭据。
+2. 用 `ssh-keygen -F <地址>` 检查已有主机记录；非默认端口查 `[地址]:端口`。known_hosts 只证明保存过主机身份，不是登录凭据。
+3. 列出 `~/.ssh` 的文件名和权限、运行 `ssh-add -l`。agent 为空不等于磁盘没有密钥。依据设备用途明确的文件名、已有 `IdentityFile` 或经用户授权的相关连接记录，选定少量候选；默认 SSH 不会遍历任意自定义文件名。
+4. 不读取或展示私钥正文。需要比对身份时查看对应 `.pub` 的 `ssh-keygen -lf` 指纹；不把新发现的全部公钥部署到服务端。
+5. 主机身份已核对后，对选定的现有密钥做一次有界测试：
+
+   ```sh
+   ssh -i '<已发现的私钥路径>' \
+     -o IdentitiesOnly=yes -o BatchMode=yes \
+     -o StrictHostKeyChecking=yes -o ConnectTimeout=8 \
+     -o ConnectionAttempts=1 -o ServerAliveInterval=5 \
+     -o ServerAliveCountMax=1 '<用户>@<地址>' whoami
+   ```
+
+   另给整个调用设置总超时。`hostname`、`whoami` 可用于初步识别，登录前不假定远端支持 `uname` 或 Bash。
+6. 认证成功后交付含 `-i` 的可复用命令；只有用户要稳定别名时才修改 SSH 配置。失败则区分“所选公钥被拒绝”和“加密密钥尚未解锁”，让用户在本机交互终端处理口令；不在聊天里索要密码或私钥。
+
+既有记录不足以校验首次/变更的主机身份时回到指纹核对步骤。后量子密钥交换警告与认证失败分开报告，不通过关闭主机校验或削弱算法来消除提示。读取历史记录时限于当前目标，只提取相关命令的连接参数，不整段打印 shell/Claude 历史。
+
 ## 可选 SSH 别名
 
 用户需要稳定入口时，备份客户端 `~/.ssh/config`（Windows 为目标用户目录下 `.ssh\config`），只合并对应 Host 段，并检查既有通配 Host、ProxyCommand/ProxyJump 的影响。

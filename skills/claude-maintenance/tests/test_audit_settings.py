@@ -37,6 +37,19 @@ class AuditTests(unittest.TestCase):
         self.assertFalse(audit.describe("DO_NOT_TRACK", "false")["enabled"])
         self.assertIsNone(audit.describe("DISABLE_GROWTHBOOK", "unexpected")["enabled"])
 
+    def test_reporting_controls_and_feature_fetching_are_distinct(self):
+        for key in ("DISABLE_TELEMETRY", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"):
+            for value in ("1", "0", "false"):
+                self.assertTrue(audit.describe(key, value)["disables_feature_flag_fetching"])
+            self.assertFalse(audit.describe(key, "")["disables_feature_flag_fetching"])
+        for key in ("DISABLE_GROWTHBOOK", "DO_NOT_TRACK"):
+            self.assertTrue(audit.describe(key, "1")["disables_feature_flag_fetching"])
+            self.assertFalse(audit.describe(key, "0")["disables_feature_flag_fetching"])
+        for key in ("DISABLE_ERROR_REPORTING", "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY"):
+            self.assertTrue(audit.describe(key, "1")["enabled"])
+            self.assertNotIn("disables_feature_flag_fetching", audit.describe(key, "1"))
+        self.assertFalse(audit.describe("CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY", "0")["enabled"])
+
     def test_values_and_identity_are_not_emitted(self):
         sentinel = "SYNTHETIC_SECRET_NEVER_PRINT"
         result, report = self.run_file(json.dumps({

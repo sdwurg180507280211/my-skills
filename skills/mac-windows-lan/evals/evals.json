@@ -1,0 +1,43 @@
+{
+  "skill_name": "mac-windows-lan",
+  "evals": [
+    {
+      "id": 1,
+      "name": "recover-existing-identity",
+      "prompt": "只做模拟，不执行命令：我从 Mac 连接之前由另一个 Agent 登录过的 Windows。默认 ssh 返回 Permission denied；known_hosts 身份一致，ssh-agent 没有 identities，~/.ssh 中有 lan_workstation_ed25519 和对应 .pub，但 ssh -G 没有列出这个文件。我不知道密码。下一步怎么做？请给出最小验证命令和成功/失败时的判断。",
+      "expected_output": "定位并有界测试已发现的非默认密钥；不索要密码、打印私钥、重装服务或绕过主机校验；不把模拟写成已登录。",
+      "files": [],
+      "expectations": [
+        "解释 agent 为空或默认认证失败不代表磁盘上没有可用的非默认密钥。",
+        "验证命令指定已发现的 lan_workstation_ed25519，并包含 IdentitiesOnly、BatchMode、StrictHostKeyChecking=yes 与连接超时。",
+        "不要求在聊天发送密码/私钥，不修改服务器授权或重装 SSH，不声称模拟认证已通过。"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "preserve-remote-fixed-exit",
+      "prompt": "只提供执行方案，不访问真实机器：把远程 Windows Clash 的三个订阅也加上本机同款两个 Claude 出口。合成出口名是 Claude出口-198.51.100.10 和 Claude出口-198.51.100.20。本机固定第一个；远程现有 listener/固定组/guard expected_ip 都绑定第二个，TUN 开启、普通组手选新加坡 02。两台机器订阅 UID 不同。保留远端正在使用的出口，不要影响国内直连。如何同步、备份、校验和恢复？",
+      "expected_output": "只同步指定节点与必要引用，保留远端出口二、普通选择和模式；使用真实扩展映射、私有备份、内核校验与分层联网验证。",
+      "files": [],
+      "expectations": [
+        "保留远端出口二和 guard expected_ip，不跟随本机切到出口一，也不把两个出口加成自动回退。",
+        "通过远端 profiles.yaml 解析三个订阅的扩展 UID，保留供应商节点、国内规则、普通选择和网络模式。",
+        "写前建立私有备份与哈希清单，先内核校验再加载，并提供仅恢复变更项的恢复方式。",
+        "提出逐出口双探针及无显式代理的 TUN 连接记录检查，说明离线校验不能代替所有订阅切换/重启/故障实测。"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "remote-transport-and-yaml",
+      "prompt": "这是脱敏的诊断场景，请只解释原因和最小修复方案：从 Mac 经 SSH 执行 Windows Python，打印 emoji 的 JSON 时 gbk 编码报错；按生成 YAML 的 sidecar 管道连接不上，但 Mihomo 进程命令行显示 production 管道；候选配置经 safe_load→JSON→safe_dump 后出现 invalid REALITY short ID，原节点的 short-id 是未加引号且有前导零的数字样式；另一个订阅 proxies 序列缩进四格，拼进顶格列表后 YAML 解析失败。不能更换供应商节点或把 controller 暴露到局域网。",
+      "expected_output": "分开处理 stdout 编码、实际服务命名管道、订阅节点原始字节与序列缩进；暂存校验后再写，保留认证与实际节点。",
+      "files": [],
+      "expectations": [
+        "设置远程 Python stdout 与本机解码为 UTF-8，说明编码失败不等于 SSH 认证失败。",
+        "从运行进程发现实际 production 管道并保留 controller 认证，而不是新增对外 TCP controller。",
+        "识别 YAML 数字转换对 REALITY short-id 的影响，保留未修改节点的原始 YAML 块，不通过改节点或降级 TLS 绕过。",
+        "处理序列缩进及顶格列表项边界，先解析候选再用实际内核校验，不直接覆盖运行配置。"
+      ]
+    }
+  ]
+}

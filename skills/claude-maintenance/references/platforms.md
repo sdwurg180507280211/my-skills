@@ -100,11 +100,11 @@ Windows 的凭据是普通文件：清理或备份时按敏感文件处理（权
 
 ### 从 Mac 远程排查 Windows
 
-1. Windows 管理员 PowerShell：`Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0`，`Set-Service sshd -StartupType Automatic; Start-Service sshd`；把默认 shell 设为 PowerShell（注册表 `HKLM:\SOFTWARE\OpenSSH` 的 `DefaultShell`）。
-2. 为这台机器单独生成密钥；管理员账户的公钥写入 `%ProgramData%\ssh\administrators_authorized_keys` 并限制为 Administrators 和 SYSTEM 可访问；防火墙只放行局域网的 22 端口。
-3. 远程命令用 `powershell -NoProfile -NonInteractive -OutputFormat Text -EncodedCommand <UTF-16LE base64>` 执行，避免引号转义、profile 报错和 CLIXML 输出；脚本里先设 `[Console]::OutputEncoding=[Text.Encoding]::UTF8`。Windows 自带的是 PowerShell 5.1，`foreach` 语句后不能直接接管道。
-4. 大文件用 `scp` 传到用户目录再移动；编码命令受 32K 命令行长度限制。
-5. SSH 会话里启动的程序不显示在用户桌面，GUI 结果由用户确认；递归遍历浏览器 profile 很慢，搜索时限制深度或目录。
+连接与通用远程维护统一读取 [mac-windows-lan](../../mac-windows-lan/SKILL.md)：已有连接优先定位旧密钥；仅在确认服务缺失并获配置授权时安装 SSH、部署选定公钥或调整防火墙。一次远程检查显式调用 PowerShell，不顺带永久修改 DefaultShell。
+
+- 执行 PowerShell/Python、UTF-8、SFTP、私有备份和桌面会话边界见[远程命令与配置维护](../../mac-windows-lan/references/remote-operations.md)。EncodedCommand 仍受 Windows 命令行长度限制，大型载荷通过私有文件或 stdin 传输。
+- 远程 Clash 的配置源/服务运行路径、命名管道和无损节点同步见[跨机同步 Clash](../../mac-windows-lan/references/clash-sync.md)。Claude 的固定出口与守护约定仍以本 skill 为准。
+- 递归遍历浏览器 profile 很慢，搜索时限制深度或目录；SSH 无法确认的 GUI 结果由用户在桌面确认。
 
 ## Clash Verge 在 Windows
 

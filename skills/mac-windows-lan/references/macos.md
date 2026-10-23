@@ -1,6 +1,6 @@
 # Mac 端
 
-当前 skill 没有实际连接到用户的 Mac。以下步骤按官方说明编写，每次使用时检查 macOS 版本、账号和网络；不能声称已经在这台 Mac 上启用或测试。
+以下步骤按角色选择。Mac 作为 SSH 客户端连接 Windows 已有实测；Mac 作为服务器的配置仍需在目标设备单独验收。每次使用时检查当前 macOS 版本、账号和网络，不把客户端登录成功写成“已开启 Mac 远程登录”。
 
 ## 地址和身份
 
@@ -22,7 +22,7 @@ networksetup -listallhardwareports
 ssh -i <Mac私钥路径> -o IdentitiesOnly=yes <Windows用户>@<Windows当前地址> whoami
 ```
 
-若通过 ssh-agent 使用密钥，按实际配置省略 -i 和 IdentitiesOnly；不要凭空猜私钥文件名。
+若通过 ssh-agent 使用密钥，按实际配置省略 -i 和 IdentitiesOnly。用户记不清旧连接时，按[已有密钥定位](connection.md#找回已有连接使用的密钥)检查非默认密钥，而不是凭空猜文件名或把默认认证失败当成没有密钥。
 
 ## Mac 作为服务器：接受 Windows 连接
 

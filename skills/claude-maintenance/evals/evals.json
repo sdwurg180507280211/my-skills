@@ -2,6 +2,18 @@
   "skill_name": "claude-maintenance",
   "evals": [
     {
+      "id": 6,
+      "prompt": "只给方案：我想减少额外上报，但要用云端定时任务。教程建议同时设置 DISABLE_TELEMETRY=1 和 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1，还说终端里有本地代理变量、时区不是美国就会直接被标记异常。哪些该改？不要操作真实配置或创建任务。",
+      "expected_output": "建议只关闭错误报告和会话调查；指出遥测开关和总开关会影响功能开关获取或云端接口，区分本机管理与云端执行，保留有效专用代理，不接受无证据的异常标记说法。",
+      "files": [],
+      "expectations": [
+        "给出 DISABLE_ERROR_REPORTING 和 CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY 的最小 env 合并方案，不覆盖现有代理。",
+        "说明 DISABLE_TELEMETRY 也关闭功能开关获取，不把它推荐为完全不影响远程功能的替代品。",
+        "区分云端 routines、本地 loop 和浏览器管理，不能声称本地开关会自动暂停已保存云端任务。",
+        "按来源检查变量，不把时区或非空代理直接等同异常；不执行修改或宣称云端任务实测成功。"
+      ]
+    },
+    {
       "id": 1,
       "prompt": "只根据提供的合成 settings.json 做只读审计：我在用官方订阅，教程说代理和 ANTHROPIC 变量只要非空就删。请判断哪些需要处理，为什么云端操作仍可能报 essential-traffic-only。不要操作真实账号或修改文件。",
       "expected_output": "保留有意的本机代理，解释字符串 0 仍启用非必要流量限制，指出 API 认证/地址冲突而不泄露值；提出最小变更和新进程/新请求验证。",

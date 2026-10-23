@@ -16,7 +16,12 @@ NONEMPTY_FLAGS = {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "DISABLE_TELEMETRY",
     "DISABLE_ERROR_REPORTING",
 }
-BOOLEAN_FLAGS = {"DISABLE_GROWTHBOOK", "DO_NOT_TRACK", "CLAUDE_CODE_DISABLE_AGENT_VIEW"}
+BOOLEAN_FLAGS = {"DISABLE_GROWTHBOOK", "DO_NOT_TRACK", "CLAUDE_CODE_DISABLE_AGENT_VIEW",
+                 "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY"}
+FEATURE_FLAG_FETCH_BLOCKERS = {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "DISABLE_TELEMETRY",
+    "DISABLE_GROWTHBOOK", "DO_NOT_TRACK",
+}
 PROXIES = {"http_proxy", "https_proxy", "all_proxy"}
 TOP_LEVEL = {"apiKeyHelper", "forceLoginMethod", "hooks", "model", "env"}
 
@@ -43,11 +48,17 @@ def describe(key: str, value: object) -> dict:
     if not isinstance(value, str):
         return {**row, "category": "invalid_env_value", "valid_string": False}
     if key in NONEMPTY_FLAGS:
-        return {**row, "category": "nonempty_flag", "enabled": bool(value)}
+        row.update(category="nonempty_flag", enabled=bool(value))
+        if key in FEATURE_FLAG_FETCH_BLOCKERS:
+            row["disables_feature_flag_fetching"] = bool(value)
+        return row
     if key in BOOLEAN_FLAGS:
         enabled = {"1": True, "true": True, "yes": True, "on": True,
                    "0": False, "false": False, "no": False, "off": False, "": False}
-        return {**row, "category": "boolean_flag", "enabled": enabled.get(value.lower())}
+        row.update(category="boolean_flag", enabled=enabled.get(value.lower()))
+        if key in FEATURE_FLAG_FETCH_BLOCKERS:
+            row["disables_feature_flag_fetching"] = row["enabled"]
+        return row
     if key.lower() in PROXIES or key == "ANTHROPIC_BASE_URL":
         category = "proxy" if key.lower() in PROXIES else "api_endpoint"
         row.update(category=category)

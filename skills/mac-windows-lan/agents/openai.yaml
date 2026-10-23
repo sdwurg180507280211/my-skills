@@ -1,4 +1,4 @@
 interface:
   display_name: "Mac 与 Windows 局域网互访"
-  short_description: "配置和排查两台电脑的双向 SSH、公钥登录、SFTP 及换网连接问题"
+  short_description: "SSH/SFTP、旧密钥定位、换网排查与 Windows 远程配置维护"
   default_prompt: "请用 $mac-windows-lan 检查我的 Mac 与 Windows 局域网连接，并完成当前需要的 SSH 或文件传输配置。"

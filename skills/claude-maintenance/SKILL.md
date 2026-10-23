@@ -13,7 +13,7 @@ description: 在 macOS 和 Windows 上清理和维护 Claude Code、Claude App �
 
 - 清空间、缓存、历史会话、旧组织资料、桌面登录或钥匙串：读取 [清理与恢复](references/cleanup-and-recovery.md)。
 - 官方订阅登录、第三方 API、shell/项目设置覆盖、代理残留、登录报错：读取 [认证与配置](references/auth-and-config.md)。
-- `essential-traffic-only`、非必要流量开关、云端任务、`/fork` 与会话分叉：读取 [功能开关与会话](references/features-and-sessions.md)。
+- 减少额外上报并保留云端任务、`essential-traffic-only`、非必要流量开关、`/fork` 与会话分叉：读取 [功能开关与会话](references/features-and-sessions.md)。
 - 创建或调整 Claude 专用 Chrome、桌面启动入口：读取 [专用 Chrome](references/browser-setup.md)。
 - Claude 域名分流、固定出口组、Claude DNS 策略、专用 listener：读取 [Claude 分流与固定出口](references/clash-routing.md)；国内直连名单、通用 DNS、链式代理和网络模式检测使用 `china-proxy`。
 - 出口守护、`claude-safe` 受保护 CLI 入口、OAuth 回调失败、经受保护入口升级模型：读取 [出口守护与 CLI 入口](references/fixed-exit.md)，实现是 `scripts/exit_guard.py`。

@@ -1,6 +1,6 @@
 ---
 name: mac-windows-lan
-description: 配置与排查一台 Mac 和一台 Windows 之间的局域网 SSH、公钥登录和 SFTP 文件传输，处理换 Wi-Fi、IP 变化、Windows 网络类型及防火墙不匹配。适用于两台电脑互访；远程桌面、SMB 共享和公网访问需另按用户目标处理。
+description: 配置与排查 Mac 和 Windows 之间的局域网 SSH、公钥登录与 SFTP；找回已有连接使用的非默认密钥，处理换网、Windows 防火墙，以及通过 SSH 执行 PowerShell/Python、备份和同步远程应用配置。远程 Clash 与 Claude 配置同时读取对应专项 skill；远程桌面、SMB 和公网访问另按目标处理。
 ---
 
 # Mac 与 Windows 局域网互访
@@ -18,6 +18,10 @@ description: 配置与排查一台 Mac 和一台 Windows 之间的局域网 SSH�
    - [Windows 端配置](references/windows.md)：Windows 被连接、SSH 服务、管理员公钥位置、网络类型和防火墙。
    - [Mac 端配置](references/macos.md)：Mac 被连接、远程登录、账号权限；或 Mac 作为客户端查地址和密钥。
    - [连接验收与故障定位](references/connection.md)：换网、主机指纹、SSH 别名、SFTP、错误分层。
+   - [远程命令与配置维护](references/remote-operations.md)：SSH 登录后执行 PowerShell/Python、UTF-8、私有备份和桌面会话边界。
+   - [跨机同步 Clash 配置](references/clash-sync.md)：用户要求远程 Clash 与本机一致时，保留远端订阅、当前选择和出口守护，只同步约定部分；同时读取 `china-proxy`，涉及 Claude 时再读取 `claude-maintenance`。
+
+已有连接报 `Permission denied`、用户不记得密码或私钥时，先按连接参考检查本机 SSH 配置、agent 与有上下文依据的非默认密钥。一次默认密钥认证失败不代表没有可用凭据，不因此重装服务。
 
 Windows 可先运行只读助手（路径相对于本 skill）：
 
@@ -46,3 +50,5 @@ powershell.exe -NoProfile -File ./scripts/inspect-windows.ps1 -TargetHost <对�
 登录验收使用只读命令，例如 `ssh <用户>@<地址> whoami`，核对返回的目标用户。没有另一端执行权限时，给出它应运行的准确命令，并标注“跨机登录待验证”。只有用户要求传文件时，才用约定目录与小测试文件验收 SFTP，核对结果后按约定清理。
 
 交付当前可用命令、验证到哪一层、实际修改及剩余问题。设置 SSH 别名时只合并目标条目，不覆盖整个用户配置；DHCP 地址变化后重新检查并更新该条目。
+
+已实测 Mac → Windows 的既有非默认密钥登录、远程只读命令，以及 Clash 多订阅节点同步与当前订阅出口核验。新装 SSH、Mac 作为服务器、反向登录和其他订阅切换后的联网按各次证据报告，不沿用本次结果。

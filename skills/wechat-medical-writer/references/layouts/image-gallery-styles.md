@@ -17,6 +17,7 @@
 ## 解释与执行
 
 - `styles.layout`：读取 `instructions`、`css`，以及存在时的 `template` 和 `componentDefinitions`。模板包含 shell/sequence/slots，组件包含真实 HTML；不能只抓基础 CSS 就宣称复刻完整模板。保留有意义的段落与引用，最终样式内联并检查公众号兼容性。
+- 组件的默认 HTML 不等于用户主动选择其每个细节。用户要求沿用医荟她已确认模板时，核对 [样式基准](yihui-article-style.md) 中已确认的参考文献内部滚动；只在私有成品覆盖冲突细节。用户本次明确另选展开方式时遵循本次要求，不修改原快照或图库服务端默认。
 - `styles.cover`：沿用 `instructions`、可选 `prompt.text` 与 `preview` 中所选具体案例的整体设计，替换本篇内容。封面独立制作，默认约 2.35:1 并重新留出标题安全区；不要直接拉伸样图或拿首张正文图充封面。
 - `styles.illustration`：沿用所选具体案例的整体构图、布局、配色、材质、线条和文字层级，只换已核实的本篇内容，不自行拆成画风与另一套布局混搭。概念图可风格化，统计图、解剖图和证据图仍遵守医学 Figure 约束。
 - 当前 `featureVersion=3` 包含排版、封面、正文案例三类，不再使用独立 `styles.composition`。按固定快照实际版本读取，不擅自把当前库其他选择混入历史方案。

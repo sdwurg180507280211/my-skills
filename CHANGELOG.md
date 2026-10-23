@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — 课件系列模版换页
+
+### Added
+- `cleanup_after_swap.py` 和 `references/post-swap-cleanup.md`：按用户 2026-10-23 定的规则，换模版后只删合规编号（包括母版和版式里的，只删对应段落）；压到系列标志的脚注和正文、页面外的文本框、页码、病例待填内容先不删，`audit` 只列出来。
+- `swap_template_pages.py` 新增 `--end-clear`、`--cover-title-box`、`--title-color`，`--title` 改为可选：用于没有标题页、结束页图里已经印好感谢语的模版。
+- `wps-presentation-batch/scripts/swap_template_pages.py`：按封面、标题页、内容页、结束页四张图整份换页；对另一套模版的课件插入封面、删除旧装饰（包括复制到每页上的）、让标题避开 logo，结束页统一改成模版样式；可以只重跑一份课件。附离线测试，并在 references 第 5 节记录经验。
+
 ## Unreleased — 观众统计表整理
 
 ### Changed
@@ -86,6 +93,18 @@
 ### Changed
 - `wechat-medical-writer` 新增 `references/domains/womens-lifecycle.md`，按青春期、育龄期、孕产期、围绝经期与绝经后、老年期及贯穿全程的乳腺、肿瘤筛查、心理与生活方式组织选题；宫颈健康保留为细分领域，仅在相关主题时加载。
 - 品牌画像写入宗旨“聚专业医学力量，为女性提供全生命周期健康知识与服务的媒体平台”，默认读者为普通女性；补充健康宣传日的核对要求与科普范围边界。
+
+## Unreleased — PPT 批量替换背景
+
+### Added
+- `wps-presentation-batch/scripts/replace_backgrounds.py`：`inspect` 显示每页背景实际来自幻灯片、版式还是母版，并指出版式整页图片遮住母版背景的页；`apply` 输出到新目录，母版换正文图、封面换封面图、清除其余背景覆盖和母版/版式中的整页旧背景图，删除孤立媒体，逐页校验生效背景、遮挡与新增断链，默认不覆盖已存在输出。附合成演示文稿离线测试。
+- `references/background-replacement.md`：背景继承链、两类实测结构、WPS 手动“应用到全部”清掉封面背景与另存重算自动缩放的副作用、他人并行编辑时从原始副本读取、删除图片人工复核、Quick Look 封面抽查，以及背景图压缩到 2560×1440 JPEG 的体积与画质结论。
+
+### Changed
+- `wps-presentation-batch` 的描述、路由、资源清单与评测加入背景替换；README 同步。未提交任何用户演示文稿、模板图片或本机路径。
+- PPTX↔PPTM 转换改为包级无损实现 `convert_presentation_format.py`：只改主部件内容类型，PPTM→PPTX 时移除 VBA 工程及其关联部件，其余部件逐字节保留；不再经 LibreOffice 整体重存，避免 think-cell、SmartArt、动画等被改写。删除原 `convert_presentation_format.sh`。
+- `render_slides_to_png.sh` 支持 `first-last` 页码范围和 `RENDER_DPI`；以独立配置目录启动 LibreOffice，避免已打开的 LibreOffice 静默吞掉任务；修复 10 页及以上演示文稿因 pdftoppm 页码补零而找不到输出的问题。
+- SKILL.md 不再假定宿主是 Codex；三个脚本均有离线测试，渲染测试以桩替代 LibreOffice。
 
 ## Unreleased — 图库登录与技术号默认配图风格
 

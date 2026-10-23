@@ -27,6 +27,10 @@ A robust batch conversion should:
 6. Verify that the output file exists and is readable before counting the file as successful.
 7. Report converted, skipped, and failed files separately.
 
-## Direct conversion caveat
+## Direct conversion
 
-When direct conversion uses a non-WPS office engine, unsupported features, embedded objects, fonts, transitions, or VBA content may change. State this caveat when fidelity or macro preservation matters. Never describe a file as “fully preserved” without opening and checking the result.
+PPTX and PPTM differ only in the content type of the main part (`presentationml.presentation.main+xml` versus `ms-powerpoint.presentation.macroEnabled.main+xml`) and the optional VBA project (`ppt/vbaProject.bin`, its relationship from the presentation, and parts such as `vbaData.xml` hanging off it). `scripts/convert_presentation_format.py` changes exactly that and copies every other part byte-for-byte; a PPTX → PPTM → PPTX round trip of a real 34-slide deck with think-cell objects left every part except `[Content_Types].xml` identical.
+
+In a valid PPTM the `.bin` default content type is usually the VBA type, so other `.bin` parts (printer settings, OLE objects) carry explicit overrides. Removing the VBA default on PPTM → PPTX therefore leaves no part untyped.
+
+Do not route this conversion through LibreOffice or another non-WPS engine: a full re-save can change unsupported features, embedded objects, fonts, transitions, or drop VBA content. If the user needs a WPS-native save for another reason, use a WPS macro and state that it re-saves the deck. Never describe a file as “fully preserved” without opening and checking the result in the user's application.

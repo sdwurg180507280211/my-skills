@@ -20,7 +20,7 @@
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
 | [`seedance-short-drama`](skills/seedance-short-drama) | Utility | 火山方舟 Seedance API「Claude 当导演」做 AI 短剧：需求与剧本定稿、连戏/分段表、Seedream 三视图与音色参考、分段生成、自动审片、剪辑表出片；处理写实人像审核与成本控制 |
 | [`opus-code-video`](skills/opus-code-video) | Utility | 纯 Claude 写代码做视频（不调视频模型）：网页逐帧渲染 MG 动画、代码合成配乐、豆包语音旁白按逐字时间戳重排节拍与字幕、渲染质检与封面；按风格提供示例片 |
-| [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：导出 PNG、PPTX↔PPTM 转换、批量改文字/字体/颜色、生成 WPS 宏 |
+| [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：导出 PNG、PPTX↔PPTM 转换、批量替换母版/封面背景、批量改文字/字体/颜色、生成 WPS 宏 |
 | [`meeting-reimbursement-audit`](skills/meeting-reimbursement-audit) | Utility | 会议核销参会明细与正脸截图审核：在线时长 ≥20 分钟、人数 ≥10 人、逐对名单重合率，只总结问题 |
 | [`audience-report-formatting`](skills/audience-report-formatting) | Utility | 直播观众Excel/CSV按参考表整理为10列纯文本测试副本：完整日期、测试ID/IP、首末进出跨度、超过20分钟记录数统计；不改原始时间 |
 | [`openmaic`](skills/openmaic) | Utility | OpenMAIC 互动课堂的配置、生成、启动方式和 SDK 二次开发指导 |
@@ -232,6 +232,12 @@ python3 -B -m unittest discover -s skills/meeting-reimbursement-audit/tests -v
 ```
 
 观众统计表整理使用独立规则，不能混用核销审核的在线人数口径；行为用例见 [`evals.json`](skills/audience-report-formatting/evals/evals.json)。
+
+PPT 批量换背景脚本另有合成演示文稿离线测试（需要 `lxml` 与 `python-pptx`）：
+
+```bash
+python3 -B -m unittest discover -s skills/wps-presentation-batch/tests -v
+```
 
 AI 短剧 Seedance 技能另有离线测试（不联网、不需要密钥；剪辑端到端测试需要 `ffmpeg`，片尾卡测试需要 Pillow 和中文字体，缺少时自动跳过）：
 

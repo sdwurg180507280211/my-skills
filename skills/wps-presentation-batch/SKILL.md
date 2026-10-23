@@ -1,6 +1,6 @@
 ---
 name: wps-presentation-batch
-description: Batch-process PowerPoint and WPS presentation files. Use this skill whenever the user asks to extract or render slide pages as PNG, convert PPTX and PPTM files, inspect presentation files, batch-change slide text, titles, fonts, or colors, or generate WPS presentation macros. Prefer direct file operations when they can complete the request. Generate WPS macro code only for operations that require the WPS object model, and never claim that a macro was run unless a WPS runtime actually returned a result.
+description: Batch-process PowerPoint and WPS presentation files. Use this skill whenever the user asks to extract or render slide pages as PNG, convert PPTX and PPTM files, inspect presentation files, batch-replace master, cover, or slide background images, batch-change slide text, titles, fonts, or colors, or generate WPS presentation macros. Prefer direct file operations when they can complete the request. Generate WPS macro code only for operations that require the WPS object model, and never claim that a macro was run unless a WPS runtime actually returned a result.
 metadata:
   runtime: Rendering requires a presentation application or converter plus pdftoppm and pdfinfo. On macOS, installed Microsoft PowerPoint can export through AppleScript; LibreOffice is an alternative subject to fidelity checks. Use bundled runtime paths where provided. WPS macro execution requires a WPS runtime or user execution.
 ---
@@ -9,7 +9,7 @@ metadata:
 
 Use this skill for repeatable PowerPoint/WPS file work. The skill covers two different execution modes:
 
-1. Direct file operations that Codex can complete and verify locally.
+1. Direct file operations that the agent can complete and verify locally.
 2. WPS macro generation for changes that depend on the WPS presentation object model.
 
 Choose the direct mode first. A macro is not an execution result: if there is no WPS runtime or connector, return the macro as a pending user action and say so plainly.
@@ -23,8 +23,15 @@ Use direct file operations for:
 - Converting PPTX to PPTM or PPTM to PPTX when the user accepts the format limitations.
 - Checking slide count, page size, output files, or whether a conversion produced the expected artifacts.
 - Narrow OOXML text or image replacements where the required objects are identifiable and unrelated ZIP parts can be preserved and verified.
+- Replacing master, cover, or slide background images across decks.
 
 For template-based poster batches, portrait insertion, font/weight discrepancies, or image export that must match the presentation, read [poster fidelity and batch checks](references/poster-fidelity.md). This includes the macOS PowerPoint export route and the observed LibreOffice distributed-alignment mismatch.
+
+For background image replacement, read [batch background replacement](references/background-replacement.md) and run `scripts/replace_backgrounds.py inspect` before changing anything: full-slide pictures inside layouts often hide the master background, so replacing only the master can leave slides visually unchanged.
+
+For a series template given as cover / title / content / end images, read section 5 of [batch background replacement](references/background-replacement.md) and use `scripts/swap_template_pages.py`.
+
+After any template or background swap, read [clean-up after a template swap](references/post-swap-cleanup.md) before delivery. Standing rule: delete compliance codes only; leave everything else (footnotes on the series mark, off-slide text boxes and so on) in place for now. Use `scripts/cleanup_after_swap.py`.
 
 For portraits requiring background removal before insertion, read [local portrait cutouts](references/local-portrait-cutouts.md). This documents the verified macOS Vision alpha-mask workflow for cases where the user has explicitly chosen local, non-generative editing and active tool rules permit it; it does not override image-editing tool requirements.
 
@@ -39,7 +46,7 @@ If the request combines both modes, complete the direct file operations first an
 
 For final images with exact typography, prefer the source application's native export when available. Microsoft PowerPoint's macOS PDF export has been verified to preserve distributed time-text alignment that LibreOffice changed. Verify a representative page before batching; native export still requires visual checking, especially for WPS-specific features. Use the LibreOffice helper below when its output has acceptable fidelity, rather than treating it as the only rendering route.
 
-Before using LibreOffice, call `load_workspace_dependencies` when that tool is available and use the returned absolute bundled `soffice` path. Do not silently substitute an installed desktop LibreOffice when a bundled path is available. Pass the selected executable to the scripts through `SOFFICE_BIN`.
+Before using LibreOffice, use a bundled `soffice` when the host provides one (for example Codex's `load_workspace_dependencies` returns an absolute path); otherwise use the installed one. Pass the selected executable to the scripts through `SOFFICE_BIN`. The render script starts LibreOffice with a private profile, so an already open LibreOffice window cannot silently swallow the job.
 
 Preserve the source file. By default, write outputs to the source directory or to a user-specified destination, fail instead of overwriting an existing output, and report the exact output paths. Do not delete a source file or clear a destination directory merely to make a batch run succeed.
 
@@ -48,22 +55,22 @@ When the user authorizes overwriting, stage and validate new outputs before repl
 For slide images, use:
 
 ```text
-scripts/render_slides_to_png.sh <source.pptx|source.pptm|source.ppt> <count> <output-dir> [base-name]
+scripts/render_slides_to_png.sh <source.pptx|source.pptm|source.ppt> <count|first-last> <output-dir> [base-name]
 ```
 
-The script converts the deck to a temporary PDF, verifies that the requested range exists, renders only the requested first pages, and writes names such as `deck-第1页.png`. Inspect at least one output image when visual fidelity matters, and verify every requested output exists before reporting completion.
+The script converts the deck to a temporary PDF, verifies that the requested pages exist, renders only the first `count` pages or the `first-last` range (for example `3-7`), and writes names such as `deck-第3页.png`. `RENDER_DPI` overrides the default 180 dpi. Inspect at least one output image when visual fidelity matters, and verify every requested output exists before reporting completion.
 
 For format conversion, use:
 
 ```text
-scripts/convert_presentation_format.sh <source.pptx|source.pptm> <output-dir>
+python3 scripts/convert_presentation_format.py <source.pptx|source.pptm>... --out-dir <output-dir>
 ```
 
-The conversion script refuses to overwrite an existing target. Report these format semantics:
+The conversion is done at the package level: only the main content type changes, plus removal of the VBA project for PPTM to PPTX. Every other ZIP part is copied byte-for-byte and no office application re-saves the deck, so slides, think-cell data, SmartArt and animations are untouched. The script skips editor lock files and refuses to overwrite an existing target. Report these format semantics:
 
 - PPTX to PPTM creates a macro-enabled presentation container; it does not add macro code.
-- PPTM to PPTX produces a normal presentation and removes embedded VBA macro content from the saved output.
-- Conversion through a non-WPS office engine can change unsupported features or layout details. Say this when the input contains macros, uncommon embedded objects, or fidelity is important.
+- PPTM to PPTX produces a normal presentation and removes the VBA project; the script lists the removed parts.
+- Templates and slide shows (`.potx`, `.ppsx`, `.potm`, `.ppsm`) and legacy `.ppt` are out of scope; the script rejects a file whose main content type does not match its extension.
 
 If a requested direct operation cannot be completed because the required executable is unavailable, report the missing dependency and stop. Do not produce a success message based only on a command that was attempted.
 
@@ -109,8 +116,14 @@ After generating a macro, perform static checks for balanced braces and obvious 
 - `references/poster-fidelity.md`: native PowerPoint export, font diagnostics, scoped template edits, portrait matching, output visibility, and freshness checks.
 - `references/local-portrait-cutouts.md`: local Vision masking, original-pixel checks, identity-based batch comparison, edge inspection, and transparent PNG delivery.
 - `references/wps-macro-contract.md`: safety and object-model rules for generated WPS macros.
+- `references/background-replacement.md`: background inheritance, WPS manual-edit side effects, scripted replacement, verification and image-size guidance.
 - `references/conversion-contract.md`: PPTX/PPTM semantics and conversion caveats.
 - `references/legacy-source-notes.md`: migrated shortcuts and replacement rules from the original Markdown files.
-- `scripts/render_slides_to_png.sh`: verified first-page/range rendering workflow.
-- `scripts/convert_presentation_format.sh`: non-destructive PPTX/PPTM conversion workflow.
+- `scripts/render_slides_to_png.sh`: LibreOffice + Poppler rendering of the first N pages or a page range.
+- `scripts/replace_backgrounds.py`: `inspect` background sources; `apply` master/cover background replacement to a new directory with built-in verification.
+- `scripts/swap_template_pages.py`: series template pages per deck, other-family cleanup, titles clear of the logo, template end page; single-deck rerun with `--overwrite`.
+- `references/post-swap-cleanup.md`: standing clean-up rules after a template swap.
+- `scripts/cleanup_after_swap.py`: `apply` deletes compliance codes only; `audit` also lists what covers the series mark, off-slide text boxes and fill-ins, with an optional render-based coverage check.
+- `scripts/convert_presentation_format.py`: lossless, non-overwriting PPTX/PPTM conversion.
+- `tests/`: offline tests for the three scripts (need `lxml`, `python-pptx`; the render test also needs Pillow and Poppler but stubs LibreOffice). Run `python3 -B -m unittest discover -s tests -v`.
 - `evals/evals.json`: initial objective test prompts for future evaluation.

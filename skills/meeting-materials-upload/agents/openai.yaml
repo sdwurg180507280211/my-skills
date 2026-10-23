@@ -1,0 +1,4 @@
+interface:
+  display_name: "会议资料网站上传"
+  short_description: "拜耳社区会议资料批量建会、上传、续传、替换与实时状态核对"
+  default_prompt: "使用 $meeting-materials-upload 按我提供的项目页面、最新版资料目录和已确认范围操作，先实时对账，再通过页面同源接口、预签名直传和文件登记完成上传，保留台账并核验实际文件。"

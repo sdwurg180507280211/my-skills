@@ -1,0 +1,4 @@
+interface:
+  display_name: "观众统计表整理"
+  short_description: "按参考格式整理观众统计表为10列纯文本测试副本，统计超过20分钟的记录数"
+  default_prompt: "使用 $audience-report-formatting 按参考表整理观众统计文件，输出10列、全文本无公式的测试副本，并统计直播观看超过20分钟的记录数。"

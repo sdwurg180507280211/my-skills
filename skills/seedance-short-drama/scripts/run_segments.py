@@ -1,8 +1,9 @@
-"""按分段配置批量生成：python3 run_segments.py [--project 目录] [段号 ...] [--model 2.5|mini] [--res 720p]
+"""按分段配置批量生成：python3 run_segments.py [--project 目录] [段号 ...] [--model 2.5|mini] [--res 480p]（默认 480p）
 
 读取 <项目>/3_提示词/分段.json，例如：
   {"S1": {"时长": 10, "图片": ["角色A", "角色B"], "音频": ["角色A"]}, ...}
 每段的提示词在 3_提示词/<段>.txt；"图片" 按顺序对应 @图片1、@图片2…，取 2_素材/角色/<名>_三视图.png；
+真人人像库的素材直接写 asset://<素材编号>（网址同理），原样传入。
 "音频" 按顺序对应 @音频1…，取 2_素材/声音/<名>.wav。不带段号就跑全部。
 每次运行给每段新增一条候选：4_生成片段/<段>_t<序号>_<模型>_<分辨率>.mp4，日志在 日志/。
 个人账户最多同时 3 个任务，所以默认 3 个并发，提交之间错开 3 秒。
@@ -17,6 +18,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent
+REMOTE = ("http://", "https://", "asset://")
+DEFAULT_RES = "480p"  # 用户没提分辨率就用 480p（2026-10 用户定）
 # 元/百万 token（2026-10 官方价格页；2.5 的 1080p 是 77）
 MODELS = {"2.5": ("doubao-seedance-2-5-260628", {"480p": 70, "720p": 70, "1080p": 77}),
           "mini": ("doubao-seedance-2-0-mini-260615", {"480p": 23, "720p": 23}),
@@ -36,7 +39,8 @@ def build_command(project, seg, cfg, model_id, res, out):
            "--prompt-file", str(project / "3_提示词" / f"{seg}.txt"), "--ratio", cfg.get("比例", "9:16"),
            "--duration", str(cfg["时长"]), "--resolution", res, "--audio", "--out", str(out)]
     for name in cfg.get("图片", []):
-        cmd += ["--ref", str(project / "2_素材" / "角色" / f"{name}_三视图.png")]
+        ref = name if name.startswith(REMOTE) else str(project / "2_素材" / "角色" / f"{name}_三视图.png")
+        cmd += ["--ref", ref]
     for name in cfg.get("音频", []):
         cmd += ["--ref-audio", str(project / "2_素材" / "声音" / f"{name}.wav")]
     return cmd
@@ -45,7 +49,7 @@ def build_command(project, seg, cfg, model_id, res, out):
 def missing_inputs(cmd):
     """提交前检查本地素材是否都在，避免缺图时白跑一轮。"""
     paths = [cmd[i + 1] for i, a in enumerate(cmd) if a in ("--prompt-file", "--ref", "--ref-audio")]
-    return [p for p in paths if not p.startswith(("http://", "https://", "asset://")) and not Path(p).exists()]
+    return [p for p in paths if not p.startswith(REMOTE) and not Path(p).exists()]
 
 
 def cost(tokens, unit_price):
@@ -57,7 +61,7 @@ def main(argv=None):
     ap.add_argument("segments", nargs="*")
     ap.add_argument("--project", default=".")
     ap.add_argument("--model", default="2.5", choices=MODELS)
-    ap.add_argument("--res", default="720p")
+    ap.add_argument("--res", default=DEFAULT_RES)
     ap.add_argument("--workers", type=int, default=3)
     a = ap.parse_args(argv)
     project = Path(a.project).resolve()

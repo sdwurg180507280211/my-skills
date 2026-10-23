@@ -1,7 +1,7 @@
 """火山方舟 Seedance 视频生成：提交 → 轮询 → 下载。
 
   python3 ark_video.py --model doubao-seedance-2-5-260628 --prompt-file S1.txt \\
-      --ref 角色A_三视图.png --ref-audio 角色A.wav --ratio 9:16 --duration 8 --resolution 720p --audio --out S1.mp4
+      --ref 角色A_三视图.png --ref-audio 角色A.wav --ratio 9:16 --duration 8 --resolution 480p --audio --out S1.mp4
   python3 ark_video.py --resume <任务ID> --out S1.mp4   只取结果，不重新提交
   python3 ark_video.py --list                          最近的任务（提交中断后先查这里，避免重复扣费）
 
@@ -35,7 +35,7 @@ def media_url(path):
 
 
 def build_body(model, prompt, refs=(), ref_audios=(), first_frame=None, last_frame=None,
-               ratio="9:16", duration=5, resolution="720p", audio=True, seed=None):
+               ratio="9:16", duration=5, resolution="480p", audio=True, seed=None):
     content = [{"type": "text", "text": prompt}]
     for role, p in (("first_frame", first_frame), ("last_frame", last_frame)):
         if p:
@@ -92,7 +92,7 @@ def main(argv=None):
     ap.add_argument("--ref-audio", action="append", default=[], help="参考音频（wav/mp3，单段 2~30 秒，总长 ≤30 秒）")
     ap.add_argument("--ratio", default="9:16")
     ap.add_argument("--duration", type=int, default=5)
-    ap.add_argument("--resolution", default="720p")
+    ap.add_argument("--resolution", default="480p", help="默认 480p；用户点名要更高画质再用 720p/1080p")
     ap.add_argument("--audio", action="store_true", help="生成有声视频")
     ap.add_argument("--seed", type=int)
     ap.add_argument("--out")

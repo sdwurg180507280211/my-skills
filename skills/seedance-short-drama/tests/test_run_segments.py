@@ -31,6 +31,15 @@ class PlanTests(unittest.TestCase):
             self.assertEqual(cmd[cmd.index(flag) + 1], value)
         self.assertIn("--audio", cmd)
 
+    def test_asset_uri_is_passed_through_and_never_reported_missing(self):
+        cfg = {"时长": 9, "图片": ["asset://asset-1", "甲"]}
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d)
+            cmd = run_segments.build_command(p, "S1", cfg, "m", "720p", p / "o.mp4")
+            refs = [cmd[i + 1] for i, a in enumerate(cmd) if a == "--ref"]
+            self.assertEqual(refs, ["asset://asset-1", str(p / "2_素材" / "角色" / "甲_三视图.png")])
+            self.assertNotIn("asset://asset-1", run_segments.missing_inputs(cmd))
+
     def test_missing_inputs_are_reported_before_submit(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d)
@@ -38,6 +47,11 @@ class PlanTests(unittest.TestCase):
             (p / "3_提示词" / "S1.txt").write_text("x", encoding="utf-8")
             cmd = run_segments.build_command(p, "S1", {"时长": 5, "图片": ["甲"]}, "m", "720p", p / "o.mp4")
             self.assertEqual(run_segments.missing_inputs(cmd), [str(p / "2_素材" / "角色" / "甲_三视图.png")])
+
+    def test_default_resolution_is_480p(self):
+        self.assertEqual(run_segments.DEFAULT_RES, "480p")
+        import ark_video
+        self.assertEqual(ark_video.build_body("m", "p")["resolution"], "480p")
 
     def test_cost_matches_official_unit_price(self):
         self.assertAlmostEqual(run_segments.cost(238500, 70), 16.695)

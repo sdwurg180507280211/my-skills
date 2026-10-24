@@ -40,3 +40,15 @@
 | 私有网关握手中断 (`SSL_ERROR_SYSCALL`) | 请求被全局/进程代理带入海外出口；需将国内私有 IP 加入 `NO_PROXY` 保持直连 |
 | 401/403 | 认证来源冲突（API Key 覆盖订阅）、令牌过期，再看网络 |
 | 账号停用通知 | 按官方 [申诉流程](https://support.claude.com/en/articles/8241253-safeguards-warnings-and-appeals) 处理，本地清理无法解决 |
+
+## 无头 SSH 终端下 macOS Keychain 锁死与凭据绕行
+
+- **现象**：通过 SSH 无头（Headless）连入远程 macOS 时，系统 Keychain（`keyring`）默认处于锁定状态。导致执行 `gh auth status`、`gh auth git-credential` 或 `git push`（借助 `gh auth setup-git`）时，报 `Failed to log in to github.com account (keyring locked)` 或凭据缺失。
+- **根治方案**：绕过系统 Keychain，将凭据直接持久化写入 `~/.config/gh/hosts.yml`：
+  ```yaml
+  github.com:
+    user: <github_username>
+    oauth_token: <oauth_token>
+    git_protocol: https
+  ```
+  `gh` 命令行工具会优先读取该文件进行鉴权，无需通过交互式 GUI 解锁 Keychain，确保了远程脚本和 Git 自动化推送的无障碍执行。

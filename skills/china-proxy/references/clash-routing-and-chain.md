@@ -105,6 +105,8 @@ function main(config, profileName) {
 - **多订阅节点隔离**：每个订阅配置增强中注入的节点名称必须完全从属于该订阅本身的节点池，禁止跨订阅混填节点名，否则会导致内核报错 `proxy not found`。
 - **Fake-IP 与 NTP 时钟**：在 Fake-IP 模式下，系统 NTP 域名（`time.apple.com`, `*.apple.com`, `time.*.com`, `*.pool.ntp.org`）必须加入 `fake-ip-filter`。否则时钟漂移累积将导致 VLESS Reality 等强时间戳校验协议批量报 `REALITY authentication failed`。
 - **服务模式与双进程防范**：Clash Verge Rev 开启服务模式时，核心作为 root 特权进程运行，切忌在终端用普通用户重复启动 `verge-mihomo` 造成端口争抢；外部脚本应通过 `/var/run/clash-verge-service/users/<uid>/verge-mihomo.sock` 进行 Unix Socket API 控制与配置热重载。
+- **界面降噪与置顶出口**：机场订阅自带的广告与状态节点（`剩余流量`、`套餐到期`、`Traffic` 等）及冗余组（`自动选择`、`故障转移`）可通过订阅 Script 扩展集中过滤；常规分组中过滤杂质后可用 `unshift` 将专用落地节点固定置顶。原规则中指向已删除分组的条目重定向至主代理组，避免核心加载报错。
+- **多订阅聚合权衡**：切忌将多个异构机场硬编码合并为一个本地静态配置，这会导致丧失各机场的原生自动更新能力。应保持各机场独立订阅，以相同 Script 扩展对各订阅进行界面降噪与出口注入。
 - 不认识的节点保留；不为固定出口复制一个永久专用前置，除非用户明确需要。不同订阅的普通前置名称可能不一样，切换时确认各自引用存在。
 - 节点 TCP/延迟测试通过不等于落地出口正确；链式组显示名称也不是证据，运行关系与目标请求记录才是。
 

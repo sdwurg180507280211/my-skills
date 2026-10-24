@@ -71,13 +71,28 @@ prepend:
   - 固定出口节点直接以 `dialer-proxy: Claude前置自动优选` 在后台持续自动选路，前置优选完全静默进行，客户端界面 0 干扰。
 - **出口安全**：无论前置节点如何切换，落地节点出口保持不变，出口守卫（`exit_guard.py`）持续核验公网出口 IP，兼顾了灵活性与 fail-closed 安全底线。
 
-### 2. 多订阅环境下的节点池隔离
+### 2. 界面降噪净化与专属出口置顶（UI Purification & Exit Top-Placement）
+
+机场订阅更新后普遍附带大量广告/信息节点（如名称包含 `剩余流量`、`套餐`、`重置`、`官网`、`到期`、`Traffic`、`Expire`）以及冗余分组（如 `自动选择`、`故障转移`）。为了既满足日常浏览界面的极简清爽，又确保专属出口一键可用，推荐通过订阅 Script 扩展（`Script.js`）实施自动化管道处理：
+
+1. **节点级过滤**：从 `config.proxies` 剔除所有包含广告与状态关键词的虚拟节点。
+2. **分组级过滤**：从 `config["proxy-groups"]` 删除 `自动选择`、`故障转移` 等冗余组。
+3. **主选择组清洗与置顶插入**：遍历用户可见常规分组（`节点选择` / 订阅同名组 / `GLOBAL`），过滤掉组内的杂项名称，并使用 `unshift` 将专属出口节点（`Claude出口-xxx`）插入置顶位置。
+4. **规则链修正与容错截断**：
+   - 将原规则中指向已删除分组（如 `自动选择`）的目标重定向至主代理组，避免核心因缺失分组解析失败。
+   - 截断 `MATCH` 之后的残留无效规则集（如规则集中引用了未定义的 `RULE-SET` 导致的崩溃）。
+
+**多订阅聚合 vs 独立订阅架构权衡**：
+- **不建议将多个不同机场强行合并为一个本地静态配置**：外部机场节点 IP、域名、TLS 证书指纹（Reality public key / short ID）经常动态变动。一旦强行合并为本地配置，将彻底丧失各机场的原生定时自动更新（Auto Update）能力，维护负担剧增。
+- **最佳实践**：保持 3 个独立的远程订阅，在每个订阅的配置增强中挂载相同的清洗与置顶 Script 扩展。各订阅在享受原生自动更新的同时，呈现出完全一致的纯净界面与专属出口。
+
+### 3. 多订阅环境下的节点池隔离
 
 Clash Verge 的配置增强（`groups` / `proxies` / `merge`）是与订阅 Profile 绑定的。
 - **不可跨订阅混填**：每个订阅的 `groups` 扩展中填入的节点名称，必须完全属于该订阅本身的节点池。若将订阅 A 的节点名写入订阅 B 的 `Claude前置选择`，Mihomo 启动校验时会报错（`proxy group: 'xxx' not found`）导致配置加载失败。
 - **切换订阅适配**：若拥有多个订阅（如良心云、Kitty、equaldcdn），需为每个订阅分别配置其专属的 `groups` 增强文件，均命名为 `Claude前置选择` 和 `Claude前置自动优选`。这样切换活动订阅后，出口节点始终能对齐当前生效的前置组。
 
-### 3. Fake-IP 下 NTP 时钟同步与 VLESS Reality 握手
+### 4. Fake-IP 下 NTP 时钟同步与 VLESS Reality 握手
 
 VLESS Reality 协议等现代代理协议对客户端与服务端的时钟偏移有极高敏感度（容差通常在几秒以内）。
 - 若开启了 Fake-IP 模式，且未将 Apple/系统 NTP 域名加入排除名单，macOS 的时间同步服务（`timed`）可能会解析到虚假 IP（如 `198.18.0.x`）导致同步失败，时钟漂移累积后会导致 Reality 节点批量报 `REALITY authentication failed`。
@@ -91,7 +106,7 @@ VLESS Reality 协议等现代代理协议对客户端与服务端的时钟偏移
       - "*.pool.ntp.org"
   ```
 
-### 4. Clash Verge Rev 服务模式与双进程排查
+### 5. Clash Verge Rev 服务模式与双进程排查
 
 - 当 Clash Verge Rev 开启「服务模式（Service Mode）」时，内核由特权进程 `clash-verge-service` 以 root 运行，实际配置位于 `/Library/Application Support/clash-verge-service/users/<uid>/runtime/config.yaml`。
 - **严禁在终端手动用普通用户重复启动 `verge-mihomo`**，否则会导致多进程争抢端口（7890/17891）并使 GUI 状态与实际网络行为割裂。

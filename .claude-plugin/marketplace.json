@@ -23,7 +23,7 @@
     },
     {
       "name": "infrastructure-skills",
-      "description": "Deployment, Mac-Windows LAN SSH/SFTP and remote configuration maintenance, network utilities, and Claude maintenance, cloud-compatible reporting controls, dedicated browser, routing and fixed-exit workflows",
+      "description": "Deployment, Mac-Windows LAN SSH/SFTP, network utilities, and Claude maintenance or complete uninstall with scoped residual checks, shared-data protection, dedicated browser and fixed-exit workflows",
       "source": "./",
       "strict": false,
       "skills": [

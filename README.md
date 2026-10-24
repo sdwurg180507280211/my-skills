@@ -14,7 +14,7 @@
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连规则集、DNS 与链式代理 |
 | [`mac-windows-lan`](skills/mac-windows-lan) | Infrastructure | Mac/Windows 局域网 SSH/SFTP、非默认密钥找回、换网排查、UTF-8 远程命令与保留出口绑定的 Clash 配置同步 |
-| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 数据清理、认证与配置维护、跨平台出口守护与专用 Chrome、Clash 分流/DNS 与固定出口（macOS/Windows） |
+| [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 完整卸载与残留复核、数据清理、认证维护、跨平台守护与专用 Chrome、Clash 分流与固定出口 |
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
@@ -101,7 +101,7 @@ uv run skills/baidu-netdisk/scripts/netdisk_mcp.py tools
 
 减少额外上报且优先保留云端任务时，按 [功能开关](skills/claude-maintenance/references/features-and-sessions.md) 单独关闭错误报告与会话调查；遥测开关也可能影响远程功能。环境审计按来源区分遗留 API 覆盖和有效专用代理，不一律清空。
 
-[`claude-maintenance`](skills/claude-maintenance/SKILL.md) 按风险分级清理 Claude 本地数据：已结束任务的临时文件和缓存确认一次即可移入废纸篓，会话历史和配置先备份，认证与钥匙串逐项确认。另处理官方订阅与第三方接口冲突、代理残留和 `essential-traffic-only` 等功能开关。
+[`claude-maintenance`](skills/claude-maintenance/SKILL.md) 分开处理维护清理与[完整卸载](skills/claude-maintenance/references/uninstall.md)。维护默认可恢复；用户已对具体清单授权永久删除时直接执行，覆盖并存安装、业务成果与 worktree、软链接、钥匙串和共用管理器残留，并防止技能同步重建已卸载目录。另处理订阅与第三方接口冲突、代理残留和 `essential-traffic-only`。
 
 Claude 专属网络也在该技能：[Claude 分流与固定出口](skills/claude-maintenance/references/clash-routing.md)（Claude 域名规则、固定出口组、DNS 策略、专用 listener、验证）和 [出口守护与 CLI 入口](skills/claude-maintenance/references/fixed-exit.md)（公网 IP 校验守护、`claude-safe` 类入口、OAuth 回调排查）。国内直连名单、通用 DNS 和链式代理仍在 `china-proxy`。
 

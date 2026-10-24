@@ -65,6 +65,10 @@ prepend:
 ```
 
 - **交互体验**：用户在 Clash Verge GUI 的「代理」页面中，可在 `Claude前置选择` 组下随时一键切换当前订阅中的任意高速节点；也可以选择 `Claude前置自动优选` 由核心周期性选路。
+- **界面静默纯净模式（Zero-UI Background Mode）**：若用户希望 Clash Verge 界面 100% 保持订阅原样（供日常个人浏览），不希望看到任何 Claude 相关分组或节点：
+  - 在 `Claude前置自动优选` 组和 `Claude出口` 节点上声明 `hidden: true`，Mihomo 与 Clash Verge GUI 会将其从所有可视化列表中完全隐藏。
+  - 在订阅脚本（`Script.js`）中将普通代理组（如 `节点选择`、`GLOBAL`）中的 Claude 节点过滤剔除。
+  - 固定出口节点直接以 `dialer-proxy: Claude前置自动优选` 在后台持续自动选路，前置优选完全静默进行，客户端界面 0 干扰。
 - **出口安全**：无论前置节点如何切换，落地节点出口保持不变，出口守卫（`exit_guard.py`）持续核验公网出口 IP，兼顾了灵活性与 fail-closed 安全底线。
 
 ### 2. 多订阅环境下的节点池隔离

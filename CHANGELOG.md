@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Claude 完整卸载
+
+### Changed
+- `claude-maintenance` 增加完整卸载分支，与保留程序可用性的维护验收分开；承接已明确给出的清单和永久删除授权。
+- 新增并存原生/nvm 安装、npm 成功但 root 属主临时包残留、任务业务成果、Git worktree、共用技能软链接、精确钥匙串和管理器历史备份处理；指定文件按内容与调用关系判断，技能同步限定保留目标，避免重建已卸载目录。
+- 同步 README 与 Marketplace；个人机器路径、配置、原始资料及运行日志只留本机，不进入仓库。
+
 ## Unreleased — 课件系列模版换页
 
 ### Added

@@ -15,7 +15,7 @@
 | 配置 | 判断 |
 |---|---|
 | `HTTP(S)_PROXY`、`ALL_PROXY`（含小写） | 进程代理；可能是用户有意设置的，确认过时后再删 |
-| `NO_PROXY` | 绕过范围；只含本机地址正常，含远程域名或 `*` 时说明影响 |
+| `NO_PROXY` | 绕过范围；只含本机地址正常。若需在受保护环境中调用国内自建服务/私有网关（如国内云主机），必须加入其 IP 豁免，避免跨国经海外出口回流导致握手重置 |
 | `ANTHROPIC_BASE_URL` | API 地址，不是代理；指向第三方网关时与官方订阅冲突 |
 | `ANTHROPIC_API_KEY`、`ANTHROPIC_AUTH_TOKEN` | 会覆盖订阅登录；用户要用官方订阅时才移除 |
 | `apiKeyHelper`、`forceLoginMethod`、`CLAUDE_CODE_USE_*` | 改变认证方式或服务提供方 |
@@ -37,5 +37,6 @@
 | `essential-traffic-only` | 非必要流量开关，见 [功能开关](features-and-sessions.md) |
 | `App unavailable in region` | 出口地区；网络问题交给 `china-proxy` |
 | OAuth localhost 回调失败 | `NO_PROXY` 是否包含本机地址、回调端口是否被代理接管 |
+| 私有网关握手中断 (`SSL_ERROR_SYSCALL`) | 请求被全局/进程代理带入海外出口；需将国内私有 IP 加入 `NO_PROXY` 保持直连 |
 | 401/403 | 认证来源冲突（API Key 覆盖订阅）、令牌过期，再看网络 |
 | 账号停用通知 | 按官方 [申诉流程](https://support.claude.com/en/articles/8241253-safeguards-warnings-and-appeals) 处理，本地清理无法解决 |

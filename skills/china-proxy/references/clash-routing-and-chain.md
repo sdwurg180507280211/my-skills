@@ -101,7 +101,10 @@ function main(config, profileName) {
 - 用户在可视化页面管理的链，不用后台脚本自动重写。首次连不上时分别查前置可达性、SOCKS5 地址/认证、`dialer-proxy` 关联和最终出口，不擅自把落地换成别的节点。
 - 重要的是最终出口；前置可以按用户意愿更换，但不能无关联地“随意变换”。每次变更后确认链仍以正确落地结束，再测公网出口。
 - 直接把 SOCKS5 落地并列放进订阅，不代表它具有链式前置。它可能无法从本地直连，节点延迟 timeout 与认证/链式关系需分别诊断。
-- 不假设 GUI 支持策略组作为前置；有些版本只渲染实际节点。有些原生链式实现会先清除 `dialer-proxy` 再按界面选择重建，手写关系可能被下一次 UI 保存覆盖。按本机版本检查生成结果，不泛化为所有版本。
+- **Mihomo 原生支持策略组作为前置**：Mihomo 内核原生支持将 `dialer-proxy` 指向一个策略组（如 `select` 或 `url-test`）。当 GUI 界面仅支持单节点链式或单节点前置延迟过高时，可在 Profile 增强（`groups` 与 `proxies` 扩展）中定义前置选择组及自动优选组，将落地的 `dialer-proxy` 绑定至该组。用户既能在 GUI 中手动自由切换前置节点，也可让核心每 2~5 分钟自动测速择优。
+- **多订阅节点隔离**：每个订阅配置增强中注入的节点名称必须完全从属于该订阅本身的节点池，禁止跨订阅混填节点名，否则会导致内核报错 `proxy not found`。
+- **Fake-IP 与 NTP 时钟**：在 Fake-IP 模式下，系统 NTP 域名（`time.apple.com`, `*.apple.com`, `time.*.com`, `*.pool.ntp.org`）必须加入 `fake-ip-filter`。否则时钟漂移累积将导致 VLESS Reality 等强时间戳校验协议批量报 `REALITY authentication failed`。
+- **服务模式与双进程防范**：Clash Verge Rev 开启服务模式时，核心作为 root 特权进程运行，切忌在终端用普通用户重复启动 `verge-mihomo` 造成端口争抢；外部脚本应通过 `/var/run/clash-verge-service/users/<uid>/verge-mihomo.sock` 进行 Unix Socket API 控制与配置热重载。
 - 不认识的节点保留；不为固定出口复制一个永久专用前置，除非用户明确需要。不同订阅的普通前置名称可能不一样，切换时确认各自引用存在。
 - 节点 TCP/延迟测试通过不等于落地出口正确；链式组显示名称也不是证据，运行关系与目标请求记录才是。
 

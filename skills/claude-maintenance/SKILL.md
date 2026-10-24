@@ -1,6 +1,6 @@
 ---
 name: claude-maintenance
-description: 在 macOS 和 Windows 上清理和维护 Claude Code、Claude App 与专用 Chrome：释放 ~/.claude 空间、清理会话和缓存、排查认证/接口/代理冲突、修复 essential-traffic-only，配置 Claude 的 Clash 分流与固定出口、出口守护、CLI 受保护入口和 OAuth 回调，以及创建、迁移和检查 Claude 专用浏览器。用户要求清理 Claude、检查 Claude 配置或网络出口、建立专用浏览器时使用；通用网络和 Clash 问题使用 china-proxy，普通编程任务使用对应开发技能。
+description: 在 macOS 和 Windows 上清理、维护或卸载 Claude Code、Claude App 与专用 Chrome：处理缓存与历史、并存安装、登录凭据、认证/接口/代理冲突、essential-traffic-only、Clash 分流与固定出口、出口守护和 OAuth 回调。用户要求删除 Claude 软件及残留、清理 Claude、检查 Claude 配置或网络出口、建立专用浏览器时使用；通用网络和 Clash 问题使用 china-proxy，普通编程任务使用对应开发技能。
 ---
 
 # Claude 环境清理与配置维护
@@ -11,6 +11,7 @@ description: 在 macOS 和 Windows 上清理和维护 Claude Code、Claude App �
 
 ## 选择资料
 
+- 删除程序和残留、合规卸载或停止使用：读取 [完整卸载](references/uninstall.md)。它与保留程序可用性的维护清理有不同验收标准。
 - 清空间、缓存、历史会话、旧组织资料、桌面登录或钥匙串：读取 [清理与恢复](references/cleanup-and-recovery.md)。
 - 官方订阅登录、第三方 API、shell/项目设置覆盖、代理残留、登录报错：读取 [认证与配置](references/auth-and-config.md)。
 - 减少额外上报并保留云端任务、`essential-traffic-only`、非必要流量开关、`/fork` 与会话分叉：读取 [功能开关与会话](references/features-and-sessions.md)。
@@ -22,8 +23,8 @@ description: 在 macOS 和 Windows 上清理和维护 Claude Code、Claude App �
 ## 安全底线
 
 1. 不打印凭据、完整环境变量、完整设置文件、org_id、邮箱、Cookie 或 OAuth 回调参数，只报告键名、类别和状态。
-2. 修改或移走前给出清单（路径、大小、动作、恢复方式），用户确认后执行；低风险的缓存和已结束任务临时文件确认一次即可，认证、钥匙串和完整重置逐项确认。
-3. 普通文件移到废纸篓或回收站中带时间戳的目录，不用 `rm`/`Remove-Item`；凭据（macOS 钥匙串、Windows 的 `.credentials.json`）删除后只能重新登录恢复，事先说明。
+2. 修改前明确路径、大小、动作和恢复影响；已有具体清单且用户授权执行时，沿用该授权。用户明确覆盖配置、历史和指定凭据后，不再逐项询问；新发现超出授权的目标另行处理。
+3. 维护清理默认将普通文件移入带时间戳的废纸篓/回收站。用户明确授权永久删除列明目标时，执行精确删除，不另留完整程序或令牌备份；凭据删除后只能重新认证。权限不足须如实处理，不以挪动或改名冒充删除。
 4. 不移走当前会话正在使用的文件（本会话的 `projects` 记录、运行中任务的 `jobs` 目录）；不跟随 `skills` 软链接进入技能仓库。
 5. 只改本次要修的键，改完开新进程验证，其他设置和认证保持不变。
 

@@ -2,6 +2,8 @@
 
 适用于 macOS 和 Windows。下文路径以 macOS 写法为例，Windows 对应路径和命令见 [平台差异](platforms.md)。
 
+本页用于保留 Claude 可用性的维护清理。完整卸载使用 [uninstall.md](uninstall.md)，其中承接用户已经给出的删除授权，并采用卸载验收标准。
+
 ## 一、发现与分类
 
 先确认用户要的是释放空间、清缓存、移除旧登录、删除历史，还是完整重置。配置根目录默认 `~/.claude`，设置了 `CLAUDE_CONFIG_DIR` 时以它为准。

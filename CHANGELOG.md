@@ -3,6 +3,7 @@
 ## Unreleased — 界面净化、出口置顶与无头 SSH Keychain 绕行
 
 ### Added
+- `claude-maintenance` 与 `china-proxy`：记录云端双账号/多账号对称隔离架构（Twin-Instance Dual-Account Isolation），包含四层物理隔离（独立固定出口、独立 Linux 用户与 `anonymousId`、iptables UID 级 Fail-Closed 绑定、独立 Web 端点与浏览器 Profile）。
 - `claude-maintenance` 与 `china-proxy`：记录 Clash Verge 界面降噪净化规范（过滤 `剩余流量`、`套餐到期`、`自动选择`、`故障转移` 等冗余信息），主选择器置顶插入专属出口节点，规则链容错重定向与截断。
 - 架构权衡分析：沉淀多异构机场独立订阅 vs 本地静态合并的利弊，推荐保持独立订阅以享受原厂自动更新。
 - 凭据容错：记录无头 SSH 登录 macOS 导致 Keychain 锁死时，直接写入 `~/.config/gh/hosts.yml` 绕行鉴权的根治解法。

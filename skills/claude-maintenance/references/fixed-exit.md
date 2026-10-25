@@ -69,6 +69,14 @@ CLI 用的代理变量由 `listen_host`/`listen_port` 在运行时生成，写�
      - 若脚本支持，配置动态入口（如 `IMAGE_GATEWAY_BASE_URL` 本地走内网直连端口，外部按需调用）。
      - 云端环境若运行了 UID 级别出口封锁（`enforce-egress.py`），必须向本地回环（`127.0.0.1`）及服务端口（`8080/3002`）授予放行白名单。
 
+3. **云端双账号/多账号对称隔离架构（Twin-Instance Dual-Account Isolation）**：
+   - **痛点与封号成因**：在单台云服务器（如阿里云 Linux）上同时运行多个 Claude 官方账号时，极易因 IP 交叉污染、在同一个 Linux 用户下共享 `~/.claude/` 中的全局唯一 `anonymousId`（机器指纹 ID）与遥测状态、或前端 Cookie 混用而触发 Anthropic 多账号关联检测连坐封号。
+   - **四层物理隔离体系**：
+     - **出口强绑定**：每个账号物理级独占一个固定出口 IP（如账号 1 独占 `209.200.250.178`，账号 2 独占 `66.253.1.117`），Mihomo 候选链路与 Guard 守护进程完全独立（如 18491 与 18492），绝对禁止互相 Fallback。
+     - **系统用户与目录隔离**：为每个账号创建独立的 Linux 系统用户（如 `cloudcli` vs `cloudcli-2`），独立家目录与独立工作区，彻底隔绝 `anonymousId`、会话历史与 OAuth 令牌。
+     - **内核防火墙单向强制绑定**：借助 `iptables -m owner --uid-owner`，在内核层限制每个 UID 只能连接其专属的 Guard 端口，禁止访问对方端口，任何绕过守护的直连全部 `REJECT`，实现 Fail-Closed 断网即止。
+     - **Web 入口与前端隔离**：Caddy 反向代理分配两个独立的访问域名（如 `cloudcli.xxx` 与 `cloudcli2.xxx`），用户本地浏览器使用不同的 Chrome 个人资料（Profile）分别登录，杜绝前端 Cookie 与指纹串号。
+
 ## CLI 入口
 
 - 官方二进制保持原样，受保护入口叫 `claude-safe`；需要简写时用 shell function（Git Bash/zsh）或 PowerShell function 调用它。用 `type claude` / `Get-Command claude` 确认实际调用的是哪个。

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — 局域网固定地址与 DHCP 保留
+
+### Changed
+- `mac-windows-lan` 增加旧 SSH 地址失效时的 DHCP 地址对照流程，以及路由器地址保留、物理网卡 MAC 核对、随机地址轮换、跨网络适用范围和目标绑定恢复。
+- 记录华为随行 WiFi 3 Pro 的“高级设置 → DHCP → IP 和 MAC 地址绑定”实测入口：核对下拉预填旧地址、保存后刷新验证，电脑继续 DHCP，分开报告本机 SSH banner 与跨机登录结果。
+- 增加模拟评测用例并更新技能入口与 README；个人地址、网卡标识、路由器凭据和实际截图只留本机。
+
 ## Unreleased — 界面净化、出口置顶与无头 SSH Keychain 绕行
 
 ### Added

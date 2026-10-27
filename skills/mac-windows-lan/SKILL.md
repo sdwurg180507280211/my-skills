@@ -1,13 +1,13 @@
 ---
 name: mac-windows-lan
-description: 配置与排查 Mac 和 Windows 之间的局域网 SSH、公钥登录与 SFTP；找回已有连接使用的非默认密钥，处理换网、Windows 防火墙，以及通过 SSH 执行 PowerShell/Python、备份和同步远程应用配置。远程 Clash 与 Claude 配置同时读取对应专项 skill；远程桌面、SMB 和公网访问另按目标处理。
+description: 配置与排查 Mac 和 Windows 之间的局域网 SSH、公钥登录与 SFTP；找回已有连接使用的非默认密钥，处理换网、IP 变化、路由器 DHCP 地址保留、Windows 防火墙，以及通过 SSH 执行 PowerShell/Python、备份和同步远程应用配置。远程 Clash 与 Claude 配置同时读取对应专项 skill；远程桌面、SMB 和公网访问另按目标处理。
 ---
 
 # Mac 与 Windows 局域网互访
 
 服务于用户的一台 Mac 和一台 Windows。先确定谁发起连接、谁接受连接；只有作为被连接端的电脑才需要 SSH 服务。双向访问分别配置、分别验收。文件双向上传下载通常只需一端提供 SFTP，不必为了传文件把两端都开成服务器。
 
-本 skill 保存方法，不保存当前 IP、用户名、SSID、公钥正文或私钥。已有会话中的设备资料可以复用，但地址、网络类别和服务状态要实时检查。历史上 Windows 本机检查成功，不等于 Mac 已登录，也不证明反向连接已经配置。
+本 skill 保存方法，不保存当前 IP、用户名、SSID、MAC 地址、公钥正文、私钥或路由器密码；真实设备截图只留本机。已有会话中的设备资料可以复用，但地址、网络类别和服务状态要实时检查。历史上 Windows 本机检查成功，不等于 Mac 已登录，也不证明反向连接已经配置。
 
 ## 先检查，再决定改什么
 
@@ -18,10 +18,13 @@ description: 配置与排查 Mac 和 Windows 之间的局域网 SSH、公钥登�
    - [Windows 端配置](references/windows.md)：Windows 被连接、SSH 服务、管理员公钥位置、网络类型和防火墙。
    - [Mac 端配置](references/macos.md)：Mac 被连接、远程登录、账号权限；或 Mac 作为客户端查地址和密钥。
    - [连接验收与故障定位](references/connection.md)：换网、主机指纹、SSH 别名、SFTP、错误分层。
+   - [保持局域网地址稳定](references/address-reservation.md)：旧 IP 失效、路由器 DHCP 地址保留、有效 MAC 核对、华为随行 WiFi 绑定与保存验证。
    - [远程命令与配置维护](references/remote-operations.md)：SSH 登录后执行 PowerShell/Python、UTF-8、私有备份和桌面会话边界。
    - [跨机同步 Clash 配置](references/clash-sync.md)：用户要求远程 Clash 与本机一致时，保留远端订阅、当前选择和出口守护，只同步约定部分；同时读取 `china-proxy`，涉及 Claude 时再读取 `claude-maintenance`。
 
 已有连接报 `Permission denied`、用户不记得密码或私钥时，先按连接参考检查本机 SSH 配置、agent 与有上下文依据的非默认密钥。一次默认密钥认证失败不代表没有可用凭据，不因此重装服务。
+
+旧 IP 无法连接时先查被连接端当前物理接口地址；地址变化且 SSH 仍正常时，交付新命令。用户希望 IP 保持不变时，按地址保留参考处理路由器绑定，电脑保留 DHCP；该绑定只保证对应路由器及设备身份下的分配。
 
 Windows 可先运行只读助手（路径相对于本 skill）：
 

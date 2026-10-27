@@ -18,9 +18,11 @@
 | Permission denied (publickey) | 目标用户名、所选客户端公钥、是否解锁对应私钥、服务端有效 authorized_keys 路径和 ACL/权限 |
 | Host key verification failed / changed | 先确认目标身份，不要关闭主机校验来修复 |
 | SSH 能登录但文件操作失败 | 远端目录、账号权限、SFTP 子系统、路径格式，不因此重装 SSH |
-| 刚换网络后不通 | DHCP 地址与别名、Windows Public/Private、规则 Profile/RemoteAddress、新网络隔离 |
+| 旧地址突然不通 / 刚换网络后不通 | 先对照物理接口当前 DHCP 地址，再查别名、Windows Public/Private、规则 Profile/RemoteAddress、新网络隔离 |
 
 ping 被阻断不等于 SSH 不可达。相同地址前缀也可能属于两个互相隔离的网络；同一路由器下有线与无线通常可以互通，不要求接入方式相同。Wi-Fi 换网通常无需重建密钥或重装服务。仅一端换到外网时，解释现有私网地址需要可达路由；VPN/异地组网是另一个明确目标。
+
+若当前 IP 已变化、SSH 服务与监听正常，先给出使用新地址的连接命令，不继续重装或放宽防火墙。用户希望地址以后不变时，读取[保持局域网地址稳定](address-reservation.md)，优先在对应路由器做 DHCP 地址保留。
 
 ## 找回已有连接使用的密钥
 
@@ -57,7 +59,7 @@ Host win-lan
     IdentitiesOnly yes
 ```
 
-另一个客户端需要反向入口时可建 mac-lan，使用那台客户端自己的密钥路径。别名不会自动跟踪 DHCP。换网后核对地址，再更新 HostName；可按用户需求研究 DHCP 地址保留或经过验证的 .local 名称，不自动修改路由器。
+另一个客户端需要反向入口时可建 mac-lan，使用那台客户端自己的密钥路径。别名不会自动跟踪 DHCP。换网后核对地址，再更新 HostName；用户已要求固定地址时按地址保留参考设置，其他情况不自动修改路由器。只有实际验证过 .local 名称解析与 SSH 连接后才交付该入口。
 
 ## 文件传输
 

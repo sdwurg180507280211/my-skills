@@ -13,7 +13,7 @@
 | [`codex-dream-skin-fix`](skills/codex-dream-skin-fix) | Development | 排查 Codex Dream Skin 主题不生效：CDP 端口错位诊断与让 Dream Skin 重新持有会话 |
 | [`github-aliyun-deploy`](skills/github-aliyun-deploy) | Infrastructure | GitHub → 阿里云 ECS 自动部署 |
 | [`china-proxy`](skills/china-proxy) | Infrastructure | TUN/显式代理路径检查、Clash 国内直连规则集、DNS 与链式代理 |
-| [`mac-windows-lan`](skills/mac-windows-lan) | Infrastructure | Mac/Windows 局域网 SSH/SFTP、非默认密钥找回、换网排查、UTF-8 远程命令与保留出口绑定的 Clash 配置同步 |
+| [`mac-windows-lan`](skills/mac-windows-lan) | Infrastructure | Mac/Windows 局域网 SSH/SFTP、非默认密钥找回、换网与 DHCP 地址保留、UTF-8 远程命令及保留出口绑定的 Clash 配置同步 |
 | [`claude-maintenance`](skills/claude-maintenance) | Infrastructure | Claude 完整卸载与残留复核、数据清理、认证维护、跨平台守护与专用 Chrome、Clash 分流与固定出口 |
 | [`baidu-netdisk`](skills/baidu-netdisk) | Utility | 百度网盘 MCP 浏览、内容检索、文件整理、分享与文本/URL 保存；从本机私有配置读取认证 |
 | [`baidu-netdisk-syncspace-recovery`](skills/baidu-netdisk-syncspace-recovery) | Utility | macOS 百度网盘「同步空间」丢文件排查：只读解析客户端 SQLite 与云端双向对账 |

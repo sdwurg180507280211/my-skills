@@ -37,6 +37,7 @@ description: 为“医荟她健康”医学公众号提供女性全生命周期�
 | 统计图、多面板科学图 | [医学 Figure 约束](references/medical-figure-design.md)，用可控绘图工具锁定数据与文字 |
 | 常规公众号 HTML | `canghe-markdown-to-html`，按医荟她文章样式中的已验证入口加载外部 `yihui.css`；方案有明确 CSS 时追加其视觉覆盖并内联化，组件按方案实际定义插入 |
 | 用户指定样式 ID | [组件库外部接口](references/layouts/wechat-component-library.md)，按实际版本取组件 |
+| 医荟她读者问答稿 | `scripts/render_yihui.py` 识别 `**读者问：**` / `**医荟她答：**` 段落，自动改用图库 `layout-yihui-interview`；回答一方署名医荟她健康，不虚构专家或访谈 |
 | 访谈 / Q&A 复杂布局 | 外部 `xiaohu-wechat-format`，仅用 formatter |
 | 明确要求光愈式头像访谈 | [光愈参考](references/layouts/guangyu-online.md)；上游缺头像时才用现有窄适配器，使用医荟她与真实专家素材 |
 | 上传微信草稿 | `canghe-post-to-wechat`，先执行下述发布检查 |

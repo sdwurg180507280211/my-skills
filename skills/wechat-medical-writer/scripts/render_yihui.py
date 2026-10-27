@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""把医荟她健康的 Markdown 成稿套进图库排版案例 layout-current，输出公众号正文 HTML。
+"""把医荟她健康的 Markdown 成稿套进图库排版案例，输出公众号正文 HTML。
 
 组件 HTML 全部来自图库 styles.json（componentIds 对应的 components），本脚本只负责把
 Markdown 块映射到组件并填槽，不另存一份样式。输出的 <body> 只含正文，供苍何发布器读取。
 
-成稿约定：H1 标题（不进正文）→ `>` 导语 → `## 01 小节标题` → `---` → `## 参考文献`
-（`[n] ...` 每条一段）→ 最后一行斜体免责声明。公众号会去掉外部链接，所以参考文献的网址
-写成可见文字。
+普通稿用 layout-current：H1 标题（不进正文）→ `>` 导语 → `## 01 小节标题` → `---` →
+`## 参考文献`（`[n] ...` 每条一段）→ 最后一行斜体免责声明。
+
+问答稿用 layout-yihui-interview：导语之后不写 `##` 小节，改为一问一答，提问段以
+`**读者问：**` 开头，回答段以 `**医荟她答：**` 开头（“读者”“医荟她”可换成其他不超过
+12 个字的署名）；回答后面的段落、列表、表格都归入同一个回答气泡，单独一行的图片作为通栏
+图片插在两轮之间。参考文献和免责声明与普通稿相同。
+
+公众号会去掉外部链接，所以参考文献的网址写成可见文字。
 
 用法：render_yihui.py <article.md> <styles.json> <out.html> [--source-note TEXT] [--preview]
 """
@@ -16,15 +22,22 @@ import re
 import sys
 
 LAYOUT_ID = 'layout-current'
+QA_LAYOUT_ID = 'layout-yihui-interview'
+QUESTION = re.compile(r'^\*\*[^*：\n]{0,12}问：\*\*')
+ANSWER = re.compile(r'^\*\*[^*：\n]{0,12}答：\*\*')
+QA_CREDITS = '<p style="margin:0;padding:0;text-align:right;">整理：医荟她健康</p>'
 GRAY = '#6F6E6E'
 P_STYLE = 'margin:0 0 16px;padding:0;'
+BUBBLE_P_STYLE = 'white-space:normal;margin:0 0 12px;padding:0;'
 CITE = '<span style="font-size:11px;vertical-align:baseline;">[%s]</span>'
 TD = 'border:1px solid #F3D3D8;padding:8px 10px;text-align:left;vertical-align:top;font-size:14px;'
 
 
-def load_components(styles_path):
+def load_components(styles_path, layout_id=LAYOUT_ID):
     catalog = json.load(open(styles_path, encoding='utf-8'))
-    layout = next(s for s in catalog['styles'] if s['id'] == LAYOUT_ID)
+    layout = next((s for s in catalog['styles'] if s['id'] == layout_id), None)
+    if layout is None:
+        raise SystemExit('styles.json has no layout %s' % layout_id)
     parts = {c['id']: c['html'] for c in catalog['components'] if c['id'] in layout['componentIds']}
     missing = set(layout['componentIds']) - set(parts)
     if missing:
@@ -75,7 +88,7 @@ def reference_item(line):
 
 def parse(md):
     lines = md.splitlines()
-    intro, sections, refs, disclaimer, state = [], [], [], '', 'intro'
+    intro, sections, rounds, refs, disclaimer, state = [], [], [], [], '', 'intro'
     i = 0
     while i < len(lines):
         line = lines[i].rstrip()
@@ -92,6 +105,8 @@ def parse(md):
             if title == '参考文献':
                 state = 'refs'
             else:
+                if rounds:
+                    raise SystemExit('a Q&A article cannot also have ## sections: %r' % title)
                 m = re.match(r'^(\d+)\s+(.+)$', title)
                 if not m:
                     raise SystemExit('section heading must be "## 01 标题": %r' % title)
@@ -107,15 +122,33 @@ def parse(md):
             refs.append(reference_item(stripped))
             i += 1
             continue
+        speaker = 'q' if QUESTION.match(stripped) else 'a' if ANSWER.match(stripped) else None
+        if speaker and state in ('intro', 'qa'):
+            if sections:
+                raise SystemExit('a sectioned article cannot also have Q&A turns: %r' % stripped[:60])
+            rounds.append({'kind': speaker, 'blocks': [('para', stripped)]})
+            state = 'qa'
+            i += 1
+            continue
         if state == 'intro':
             if not stripped.startswith('>'):
                 raise SystemExit('text before the first section must be the > intro: %r' % stripped[:60])
             intro.append(stripped.lstrip('>').strip())
             i += 1
             continue
-        if not sections:
+        if state == 'qa':
+            image = re.fullmatch(r'!\[(.*?)\]\((\S+?)\)', stripped)
+            if image:
+                rounds.append({'kind': 'image', 'blocks': [('image', image.group(2), image.group(1))]})
+                i += 1
+                continue
+            if rounds[-1]['kind'] == 'image':
+                raise SystemExit('text after an image must start a new 问 or 答 turn: %r' % stripped[:60])
+            blocks = rounds[-1]['blocks']
+        elif not sections:
             raise SystemExit('body text outside a section: %r' % stripped[:60])
-        blocks = sections[-1]['blocks']
+        else:
+            blocks = sections[-1]['blocks']
         if stripped.startswith('|'):
             j = i
             while j < len(lines) and lines[j].strip().startswith('|'):
@@ -137,10 +170,10 @@ def parse(md):
         m = re.fullmatch(r'!\[(.*?)\]\((\S+?)\)', stripped)
         blocks.append(('image', m.group(2), m.group(1)) if m else ('para', stripped))
         i += 1
-    return intro, sections, refs, disclaimer
+    return intro, sections, rounds, refs, disclaimer
 
 
-def block_html(block, images):
+def block_html(block, images, p_style=P_STYLE):
     kind = block[0]
     if kind == 'image':
         if block[1] == 'imgs/cover.png':
@@ -157,11 +190,11 @@ def block_html(block, images):
             m = re.match(r'^([-*]|\d+\.)\s+(.*)$', item)
             mark = '%d. ' % n if m.group(1)[0].isdigit() else '· '
             out.append('<p style="margin:0 0 8px;padding:0 0 0 1em;text-indent:-1em;">%s%s</p>' % (mark, inline(m.group(2))))
-        return ''.join(out[:-1]) + out[-1].replace('margin:0 0 8px;', P_STYLE, 1)
+        return ''.join(out[:-1]) + out[-1].replace('margin:0 0 8px;', p_style, 1)
     if kind == 'quote':
         return ('<p style="%sborder-left:3px solid #F24D60;padding-left:10px;color:#555;">%s</p>'
-                % (P_STYLE.replace('padding:0;', ''), inline(block[1])))
-    return '<p style="%s">%s</p>' % (P_STYLE, inline(block[1]))
+                % (p_style.replace('padding:0;', ''), inline(block[1])))
+    return '<p style="%s">%s</p>' % (p_style, inline(block[1]))
 
 
 def default_note(md):
@@ -172,32 +205,61 @@ def default_note(md):
     return '资料核对日期：%s年%d月%d日。具体检查和治疗请咨询专业医生。' % (y, int(m), int(d))
 
 
-def render(md, layout, parts, source_note=None):
+def bubble_html(blocks):
+    images = []
+    out = ''.join(block_html(b, images, BUBBLE_P_STYLE) for b in blocks)
+    if images:
+        raise SystemExit('images inside a Q&A turn must stand on their own line between turns')
+    k = out.rfind('margin:0 0 12px;')
+    return out[:k] + 'margin:0;' + out[k + len('margin:0 0 12px;'):] if k >= 0 else out
+
+
+def render(md, styles_path, source_note=None):
+    intro, sections, rounds, refs, disclaimer = parse(md)
+    if not intro or not (sections or rounds) or not refs or not disclaimer:
+        raise SystemExit('article needs > intro, ## sections or 问/答 turns, ## 参考文献 and an italic disclaimer')
+    if rounds and not any(r['kind'] == 'q' for r in rounds) or rounds and not any(r['kind'] == 'a' for r in rounds):
+        raise SystemExit('a Q&A article needs both 问 and 答 turns')
+    numbers = [n for n, _ in refs]
+    if numbers != list(range(1, len(refs) + 1)):
+        raise SystemExit('references must be numbered 1..n in order, got %s' % numbers)
+    layout, parts = load_components(styles_path, QA_LAYOUT_ID if rounds else LAYOUT_ID)
+
     def fill(cid, **slots):
         out = parts[cid]
         for key, value in slots.items():
             out = out.replace('{{%s}}' % key, value)
         return out
 
-    intro, sections, refs, disclaimer = parse(md)
-    if not intro or not sections or not refs or not disclaimer:
-        raise SystemExit('article needs > intro, ## sections, ## 参考文献 and an italic disclaimer')
-    numbers = [n for n, _ in refs]
-    if numbers != list(range(1, len(refs) + 1)):
-        raise SystemExit('references must be numbered 1..n in order, got %s' % numbers)
     images, content = [], [parts['医荟她-栏目'],
                            fill('医荟她-导语', intro=''.join('<p style="margin:0;">%s</p>' % inline(p) for p in intro))]
     for sec in sections:
         content.append(fill('医荟她-章节', number=html.escape(sec['number']), heading=inline(sec['heading'])))
         content.append(fill('医荟她-正文', paragraphs=''.join(block_html(b, images) for b in sec['blocks'])))
+    slots = layout.get('template', {}).get('slots', {})
+    for turn in rounds:
+        if turn['kind'] == 'image':
+            _, src, alt = turn['blocks'][0]
+            if src != 'imgs/cover.png':
+                images.append(src)
+                content.append(fill('医荟她访谈-图片', src=html.escape(src), alt=html.escape(alt)))
+        elif turn['kind'] == 'q':
+            content.append(fill('医荟她访谈-提问', askAvatar=slots.get('askAvatar', '问'), question=bubble_html(turn['blocks'])))
+        else:
+            content.append(fill('医荟她访谈-回答', answerAvatar=slots.get('answerAvatar', '答'), answer=bubble_html(turn['blocks'])))
     content.append(fill('医荟她-参考文献', references=''.join(item for _, item in refs)))
     content.append(fill('医荟她-资料说明', sourceNote=html.escape(source_note or default_note(md))))
     content.append(fill('医荟她-结尾', disclaimer=inline(disclaimer)))
+    if rounds:
+        content.append(fill('医荟她访谈-编辑信息', credits=QA_CREDITS))
     out = ''.join(content)
     leftover = re.findall(r'\{\{\w+\}\}', out)
     if leftover:
         raise SystemExit('unfilled slots: %s' % sorted(set(leftover)))
-    return out, images, len(sections), len(refs)
+    info = {'layout': layout['id'], 'images': images, 'sections': len(sections),
+            'questions': sum(r['kind'] == 'q' for r in rounds), 'answers': sum(r['kind'] == 'a' for r in rounds),
+            'references': len(refs)}
+    return out, layout, info
 
 
 def main():
@@ -210,16 +272,15 @@ def main():
     if len(args) != 3:
         raise SystemExit(__doc__)
     md_path, styles_path, out_path = args
-    layout, parts = load_components(styles_path)
-    content, images, n_sections, n_refs = render(open(md_path, encoding='utf-8').read(), layout, parts, note)
+    content, layout, info = render(open(md_path, encoding='utf-8').read(), styles_path, note)
     if '--preview' in argv:
         doc = layout['template']['shell'].replace('{{content}}', content)
     else:
         doc = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"></head><body>%s</body></html>' % content
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write(doc)
-    print(json.dumps({'images': images, 'sections': n_sections, 'references': n_refs,
-                      'characters': len(content)}, ensure_ascii=False))
+    info['characters'] = len(content)
+    print(json.dumps(info, ensure_ascii=False))
 
 
 if __name__ == '__main__':

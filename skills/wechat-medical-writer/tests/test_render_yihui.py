@@ -10,9 +10,17 @@ SCRIPT = os.path.join(HERE, '..', 'scripts', 'render_yihui.py')
 IDS = ['医荟她-栏目', '医荟她-导语', '医荟她-章节', '医荟她-正文', '医荟她-参考文献', '医荟她-资料说明', '医荟她-结尾']
 SLOTS = {'医荟她-导语': '{{intro}}', '医荟她-章节': '{{number}}.{{heading}}', '医荟她-正文': '{{paragraphs}}',
          '医荟她-参考文献': '<ol>{{references}}</ol>', '医荟她-资料说明': '{{sourceNote}}', '医荟她-结尾': '{{disclaimer}}'}
+QA_IDS = ['医荟她-栏目', '医荟她-导语', '医荟她访谈-提问', '医荟她访谈-回答', '医荟她访谈-图片', '医荟她-参考文献',
+          '医荟她-资料说明', '医荟她-结尾', '医荟她访谈-编辑信息']
+SLOTS.update({'医荟她访谈-提问': '{{askAvatar}}|{{question}}', '医荟她访谈-回答': '{{answerAvatar}}|{{answer}}',
+              '医荟她访谈-图片': '<img src="{{src}}" alt="{{alt}}">', '医荟她访谈-编辑信息': '{{credits}}'})
 STYLES = {'styles': [{'id': 'layout-current', 'kind': 'layout', 'componentIds': IDS,
-                      'template': {'shell': '<html><body><div id="shell">{{content}}</div></body></html>'}}],
-          'components': [{'id': i, 'html': '<section data-c="%s">%s</section>' % (i, SLOTS.get(i, ''))} for i in IDS]}
+                      'template': {'shell': '<html><body><div id="shell">{{content}}</div></body></html>'}},
+                     {'id': 'layout-yihui-interview', 'kind': 'layout', 'componentIds': QA_IDS,
+                      'template': {'shell': '<html><body><div id="qa-shell">{{content}}</div></body></html>',
+                                   'slots': {'askAvatar': 'ASK', 'answerAvatar': 'ANS'}}}],
+          'components': [{'id': i, 'html': '<section data-c="%s">%s</section>' % (i, SLOTS.get(i, ''))}
+                         for i in dict.fromkeys(IDS + QA_IDS)]}
 ARTICLE = """# 标题
 
 > 第一段导语，带 **重点**。
@@ -47,6 +55,36 @@ ARTICLE = """# 标题
 [3] 作者. 无链接条目. 指南，访问日期：2026-10-13.
 
 *本文为健康科普，不能替代个人诊疗意见。请到妇科就诊。*
+"""
+
+QA_ARTICLE = """# 问答标题
+
+> 这是读者常见问题整理。
+
+**读者问：** 第一个问题？
+
+**医荟她答：** 第一段回答 [1]。
+
+第二段回答。
+
+- 要点一
+- 要点二
+
+![配图](imgs/01-a.png)
+
+**读者问：** 第二个问题？
+
+**医荟她答：** 只有一段 [2]。
+
+---
+
+## 参考文献
+
+[1] 机构. [标题一](https://example.com/a). 官方网页，访问日期：2026-10-12.
+
+[2] 作者. 无链接条目. 指南，访问日期：2026-10-13.
+
+*本文为健康科普，按读者常见问题整理，不能替代个人诊疗意见。*
 """
 
 
@@ -111,6 +149,43 @@ class RenderTest(unittest.TestCase):
         p, _ = self.run_render(article=ARTICLE.replace('## 01 第一节', '## 第一节'))
         self.assertNotEqual(p.returncode, 0)
         p, _ = self.run_render(article=ARTICLE.replace('[3] 作者', '[4] 作者'))
+        self.assertNotEqual(p.returncode, 0)
+
+    def test_regular_article_keeps_default_layout(self):
+        p, html = self.run_render('--preview')
+        self.assertEqual(json.loads(p.stdout.decode())['layout'], 'layout-current')
+        self.assertNotIn('医荟她访谈', html)
+
+    def test_qa_article_uses_interview_layout(self):
+        p, html = self.run_render('--preview', article=QA_ARTICLE)
+        self.assertEqual(p.returncode, 0, p.stderr.decode())
+        info = json.loads(p.stdout.decode())
+        self.assertEqual(info['layout'], 'layout-yihui-interview')
+        self.assertEqual((info['sections'], info['questions'], info['answers'], info['references']), (0, 2, 2, 2))
+        self.assertEqual(info['images'], ['imgs/01-a.png'])
+        self.assertIn('<div id="qa-shell">', html)
+        self.assertNotIn('{{', html)
+        self.assertNotIn('data-c="医荟她-章节"', html)
+        order = [html.index('data-c="%s"' % i) for i in QA_IDS]
+        self.assertEqual(order, sorted(order))
+        self.assertIn('ASK|<p style=', html)
+        self.assertIn('<strong>读者问：</strong> 第一个问题？', html)
+        first = html[html.index('ANS|'):html.index('data-c="医荟她访谈-图片"')]
+        self.assertIn('第二段回答。', first)
+        self.assertIn('· 要点二', first)
+        self.assertEqual(first.count('margin:0 0 12px;'), 2)
+        self.assertIn('<img src="imgs/01-a.png" alt="配图">', html)
+        self.assertIn('整理：医荟她健康', html)
+
+    def test_rejects_mixed_or_one_sided_qa(self):
+        mixed = QA_ARTICLE.replace('**读者问：** 第二个问题？', '## 01 小节')
+        p, _ = self.run_render(article=mixed)
+        self.assertNotEqual(p.returncode, 0)
+        one_sided = QA_ARTICLE.replace('**医荟她答：** 第一段回答', '第一段回答').replace('**医荟她答：** 只有一段', '只有一段')
+        p, _ = self.run_render(article=one_sided)
+        self.assertNotEqual(p.returncode, 0)
+        after_image = QA_ARTICLE.replace('**读者问：** 第二个问题？', '图片后的散段')
+        p, _ = self.run_render(article=after_image)
         self.assertNotEqual(p.returncode, 0)
 
 

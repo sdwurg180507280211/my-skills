@@ -23,13 +23,14 @@
     },
     {
       "name": "infrastructure-skills",
-      "description": "Deployment, Mac-Windows LAN SSH/SFTP, network utilities, and Claude maintenance or complete uninstall with scoped residual checks, shared-data protection, dedicated browser and fixed-exit workflows",
+      "description": "Deployment, Mac-Windows LAN SSH/SFTP, cloudcli device onboarding over reverse SSH tunnels, network utilities, and Claude maintenance or complete uninstall with scoped residual checks, shared-data protection, dedicated browser and fixed-exit workflows",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/github-aliyun-deploy",
         "./skills/china-proxy",
         "./skills/mac-windows-lan",
+        "./skills/cloudcli-device-onboarding",
         "./skills/claude-maintenance"
       ]
     },

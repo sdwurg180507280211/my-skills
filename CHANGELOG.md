@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — cloudcli 设备接入
+
+### Added
+- 新增 `cloudcli-device-onboarding`：让新的 Windows 或 Mac 通过反向 SSH 隧道接入 cloudcli。隧道统一使用服务器上的专用用户 `tunnel`，每台设备的密钥只能开自己那一个端口。
+- `server/init-tunnel-user.sh` 创建用户并检查 sshd 配置（不自动修改）；`server/add-device-key.sh` 分配端口并登记公钥，`authorized_keys` 是唯一的端口记录；`windows/setup.ps1` 和 `mac/setup.sh` 完成设备端安装与本机验证。
+- `SKILL.md` 包含验证、故障排查、移除设备、bjpc-windows 迁移步骤和安全规则。仓库是公开的，服务器地址在运行时询问或读取 `CLOUDCLI_SERVER`，不写入任何文件。
+
 ## Unreleased — 局域网固定地址与 DHCP 保留
 
 ### Changed

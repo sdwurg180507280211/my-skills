@@ -31,6 +31,12 @@ class PlanTests(unittest.TestCase):
             self.assertEqual(cmd[cmd.index(flag) + 1], value)
         self.assertIn("--audio", cmd)
 
+    def test_audio_asset_uri_is_passed_through(self):
+        cfg = {"时长": 9, "图片": [], "音频": ["asset://asset-9"]}
+        cmd = run_segments.build_command(Path("/proj"), "S1", cfg, "m", "480p", Path("/o.mp4"))
+        self.assertEqual([cmd[i + 1] for i, a in enumerate(cmd) if a == "--ref-audio"], ["asset://asset-9"])
+        self.assertEqual(run_segments.missing_inputs(cmd), ["/proj/3_提示词/S1.txt"])
+
     def test_asset_uri_is_passed_through_and_never_reported_missing(self):
         cfg = {"时长": 9, "图片": ["asset://asset-1", "甲"]}
         with tempfile.TemporaryDirectory() as d:

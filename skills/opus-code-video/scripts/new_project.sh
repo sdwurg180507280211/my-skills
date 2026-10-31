@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 新建一个代码动画工程：bash new_project.sh <工程目录> [风格，默认 sticker-explainer]
+# 新建一个代码动画工程：bash new_project.sh <工程目录> [风格，默认 paper-craft]
 #
 # 做的事：
 #   1. 稀疏克隆 mg-styles-15（MIT，只取渲染器、配乐工具和提示词）到 $MG_STYLES_DIR（默认 ~/.cache/mg-styles-15）
@@ -10,7 +10,7 @@
 # 已存在的东西不覆盖。联网请求按本机网络规则走系统路由。
 set -euo pipefail
 PROJ="${1:?用法：bash new_project.sh <工程目录> [风格]}"
-STYLE="${2:-sticker-explainer}"
+STYLE="${2:-paper-craft}"
 SKILL="$(cd "$(dirname "$0")/.." && pwd)"
 MG="${MG_STYLES_DIR:-$HOME/.cache/mg-styles-15}"
 EX="$SKILL/styles/$STYLE/example"

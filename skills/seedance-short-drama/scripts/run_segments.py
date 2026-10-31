@@ -4,7 +4,7 @@
   {"S1": {"时长": 10, "图片": ["角色A", "角色B"], "音频": ["角色A"]}, ...}
 每段的提示词在 3_提示词/<段>.txt；"图片" 按顺序对应 @图片1、@图片2…，取 2_素材/角色/<名>_三视图.png；
 真人人像库的素材直接写 asset://<素材编号>（网址同理），原样传入。
-"音频" 按顺序对应 @音频1…，取 2_素材/声音/<名>.wav。不带段号就跑全部。
+"音频" 按顺序对应 @音频1…，取 2_素材/声音/<名>.wav；asset:// 同样原样传入。不带段号就跑全部。
 每次运行给每段新增一条候选：4_生成片段/<段>_t<序号>_<模型>_<分辨率>.mp4，日志在 日志/。
 个人账户最多同时 3 个任务，所以默认 3 个并发，提交之间错开 3 秒。
 """
@@ -42,7 +42,8 @@ def build_command(project, seg, cfg, model_id, res, out):
         ref = name if name.startswith(REMOTE) else str(project / "2_素材" / "角色" / f"{name}_三视图.png")
         cmd += ["--ref", ref]
     for name in cfg.get("音频", []):
-        cmd += ["--ref-audio", str(project / "2_素材" / "声音" / f"{name}.wav")]
+        ref = name if name.startswith(REMOTE) else str(project / "2_素材" / "声音" / f"{name}.wav")
+        cmd += ["--ref-audio", ref]
     return cmd
 
 

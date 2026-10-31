@@ -21,7 +21,8 @@
 | [`google-flow-story-video`](skills/google-flow-story-video) | Utility | Google Flow 参考图驱动人物故事短片：角色一致性、中文对白/旁白、无叠声配音轨与素材整理 |
 | [`seedance-short-drama`](skills/seedance-short-drama) | Utility | 火山方舟 Seedance API「Claude 当导演」做 AI 短剧：需求与剧本定稿、连戏/分段表、Seedream 三视图与音色参考、分段生成、自动审片、剪辑表出片；处理写实人像审核与成本控制 |
 | [`opus-code-video`](skills/opus-code-video) | Utility | 纯 Claude 写代码做视频（不调视频模型）：网页逐帧渲染 MG 动画、代码合成配乐、豆包语音旁白按逐字时间戳重排节拍与字幕、渲染质检与封面；按风格提供示例片 |
-| [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：导出 PNG、PPTX↔PPTM 转换、批量替换母版/封面背景、批量改文字/字体/颜色、生成 WPS 宏 |
+| [`video-courseware-extractor`](skills/video-courseware-extractor) | Utility | 视频按讲者/时间点提取课件：区域定位、动画/视频代表帧、非相邻回翻去重、共享提示清理、可编辑文字与16:9重排、图片课件换底板、单一结束页、保真验收与按参考目录交付清理 |
+| [`wps-presentation-batch`](skills/wps-presentation-batch) | Utility | PPT/WPS 批量处理：会议海报先交 PPT 校验、确认后导出，二维码对应核验与增量重导出；导出 PNG、PPTX↔PPTM 转换、批量替换母版/封面背景、批量改文字/字体/颜色、生成 WPS 宏 |
 | [`meeting-reimbursement-audit`](skills/meeting-reimbursement-audit) | Utility | 会议核销审核：报告在线时长、人数与逐对名单重合率；截图仅查是否有头像，海报仅查主体背景异常，正常透明留白不判不合格，各类问题分表 |
 | [`audience-report-formatting`](skills/audience-report-formatting) | Utility | 直播观众Excel/CSV按参考表整理为10列纯文本测试副本：完整日期、测试ID/IP、首末进出跨度、超过20分钟记录数统计；不改原始时间 |
 | [`meeting-materials-upload`](skills/meeting-materials-upload) | Utility | 拜耳社区会议资料批量建会与上传：实时对账、Aura/S3/登记、断点续传、最新版替换、授权删除重建与审核状态核对 |

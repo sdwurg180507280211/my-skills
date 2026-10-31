@@ -14,7 +14,13 @@ Use this skill for repeatable PowerPoint/WPS file work. The skill covers two dif
 
 Choose the direct mode first. A macro is not an execution result: if there is no WPS runtime or connector, return the macro as a pending user action and say so plainly.
 
+## Poster review before final image export
+
+For this user's template-based meeting posters, deliver editable PPTs for the user's review first. The PPT stage is complete when the requested files are saved, their text/image mappings are checked, and missing materials are listed. Wait for the user to confirm the PPTs or explicitly request image export before generating or replacing the final poster PNG batch. Historical export requests do not authorize exporting a newly created or newly revised batch. Small temporary previews needed for layout checks may remain in staging; they are not final deliverables. A current explicit request to export or regenerate images authorizes that step without another confirmation. See [poster fidelity](references/poster-fidelity.md) for source freshness and incremental export.
+
 ## Route the request
+
+For extracting courseware from videos, splitting decks by speaker/time, removing visible recording UI from screenshot decks, rebuilding screenshot decks as 16:9, or replacing a background baked into a picture-only deck, first read `video-courseware-extractor` (locate its installed SKILL.md; in this repository: [video courseware workflow](../video-courseware-extractor/SKILL.md)). That skill owns source timing, candidate-page review and restoration. Use this skill for the generic PPT export or narrow package-editing step only.
 
 Use direct file operations for:
 

@@ -36,7 +36,7 @@
     },
     {
       "name": "utility-skills",
-      "description": "General-purpose automation utilities, medical WeChat styling and draft-readback checks, technical WeChat template-slot validation, text-only audience workbooks without formulas, and scoped meeting audits with screenshot avatar-presence and poster-background checks",
+      "description": "General-purpose automation utilities, review-first poster PPT workflows with verified QR mapping and fresh exports, medical WeChat styling and draft-readback checks, technical WeChat template-slot validation, text-only audience workbooks without formulas, and scoped meeting audits with screenshot avatar-presence and poster-background checks, and speaker-aware video courseware extraction with representative animation/video states, whole-deck duplicate review, faithful widescreen/background reconstruction, and reference-based delivery cleanup with private handoff",
       "source": "./",
       "strict": false,
       "skills": [
@@ -56,7 +56,8 @@
         "./skills/google-flow-story-video",
         "./skills/seedance-short-drama",
         "./skills/opus-code-video",
-        "./skills/wps-presentation-batch"
+        "./skills/wps-presentation-batch",
+        "./skills/video-courseware-extractor"
       ]
     }
   ]

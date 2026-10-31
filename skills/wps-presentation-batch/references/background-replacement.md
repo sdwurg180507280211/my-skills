@@ -2,6 +2,10 @@
 
 Read when the user asks to replace the master or slide background of one or more decks with a new image, for example a yearly template refresh where content stays the same and only the branded background changes. The observations below come from a 35-deck batch edited in WPS on macOS; re-check behavior on other decks.
 
+## Picture-only courseware boundary
+
+Before applying background-replacement scripts, inspect whether a full-page image contains the actual slide content. A screenshot with both text and the old design is not a disposable background: changing the master beneath it will be invisible, and deleting it will remove the content. For this structure, follow [video-courseware-extractor: widescreen and background reconstruction](../../video-courseware-extractor/references/widescreen-and-background.md). Rebuild ordinary text and retain faithfully cropped evidence images. Reuse an already verified editable 16:9 version when available. Preserve report/chart white backgrounds where needed; do not indiscriminately make white pixels transparent.
+
 ## 1. Where the visible background comes from
 
 A slide shows the first background found in this chain: slide `p:bg` → layout `p:bg` → master `p:bg`. Pictures on top of that are separate:

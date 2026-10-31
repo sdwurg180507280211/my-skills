@@ -13,14 +13,16 @@ description: 纯靠 Claude 写代码做视频，不调视频或图片生成模�
 
 | 风格 | 适合 | 示例 |
 |---|---|---|
-| [sticker-explainer](styles/sticker-explainer/README.md) 贴纸科普 | 讲流程、原理、"一件事背后发生了什么" | 《按下回车之后的 1 秒》：横屏，60 秒无配音 / 67.5 秒带旁白和字幕 |
+| [paper-craft](styles/paper-craft/README.md) 纸艺立体（**科普默认**） | 科普：把抽象概念做成墙上的剪纸实物（板子、便利贴、纸箱），手作质感、主体大 | 《忘事》第 4 句：横屏 14.6 秒，配上旁白后 retime.py 生成字幕 |
+| [sticker-explainer](styles/sticker-explainer/README.md) 贴纸科普（旧） | 讲流程、原理、"一件事背后发生了什么" | 《按下回车之后的 1 秒》：横屏，60 秒无配音 / 67.5 秒带旁白和字幕 |
 
-用户想要的风格不在表里（例如睡前故事）时，照下面的流程先做一支，跑通后再按同样结构加进 `styles/`。
+科普新片默认用纸艺立体（2026-10-27 用户从纸艺、暗场光窗、手绘笔记三种样片里选定；贴纸科普画面像 PPT、元素小，不再新用）。用户想要的风格不在表里（例如睡前故事）时，照下面的流程先做一支，跑通后再按同样结构加进 `styles/`。
 
 ## 开工前
 
 - 依赖：Node 22+、Google Chrome、ffmpeg、Python 3.10+。
-- 新建工程：`bash scripts/new_project.sh <工程目录> [风格]`。它会稀疏克隆 mg-styles-15（MIT，渲染器 `harness/render.mjs` 和配乐工具 mgaudio），复制风格示例，装 puppeteer-core 和配乐依赖（Intel Mac 上 numba 新版没有安装包，脚本会装 0.60），下载 OFL 字体。
+- 新建工程：`bash scripts/new_project.sh <工程目录> [风格，默认 paper-craft]`。它会稀疏克隆 mg-styles-15（MIT，渲染器 `harness/render.mjs` 和配乐工具 mgaudio），复制风格示例，装 puppeteer-core 和配乐依赖（Intel Mac 上 numba 新版没有安装包，脚本会装 0.60），下载 OFL 字体。
+- **先读经验库**：`git -C ~/ideaProjects/ai-video-workbench pull --ff-only`（拉不下来不阻塞），读 `AI视频/调研/经验/README.md`。之后每个环节开始前读对应那份：剧本 → `剧本与旁白.md`；节拍、关键帧 → `分镜与镜头.md`、`画面与风格.md`；配乐、旁白 → `配乐配音.md`；渲染、质检 → `渲染与质检.md`。用到哪条写进这支片的 `交接.md`；做完把那条的状态回写成「实测有效（片名）」或「试过不行（原因）」。经验库和本 Skill 的规矩冲突时以本 Skill 为准。
 - 旁白要豆包语音的 API Key，开通和费用见 [references/narration.md](references/narration.md)。
 
 ## 流程

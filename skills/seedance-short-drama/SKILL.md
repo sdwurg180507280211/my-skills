@@ -15,7 +15,8 @@ description: 用火山方舟 Seedance 2.x API 按“Claude 当导演”的方式
 - 方舟账号：要开通 Seedance 2.5（以及需要的其他档位）和 Seedream 5.0 Pro。开通门槛、用量上限、密钥类型这些坑，见 [references/ark-api.md](references/ark-api.md)。
 - 密钥：读环境变量 `ARK_API_KEY`，或 `~/.config/volc-ark/api-key`（权限 600）。请用户自己保存，不要让用户把密钥贴进对话，也不要打印、写进日志或任何文件。
 - 免费检查连通性：`python3 scripts/ark_video.py --list`。
-- 剧本审稿用 DeepSeek API（`scripts/review_script.py`）：密钥读环境变量 `DEEPSEEK_API_KEY`，或 `~/.config/deepseek/api-key`（权限 600）；默认模型 `deepseek-flash`（官方文档写明就是 DeepSeek-V4.1-Flash-1017；接口只认这个名字）、推理强度 `max`（可选 none 到 max 共八档）。
+- 剧本审稿（`scripts/review_script.py`）默认用 Gemini：经自建 Sub2API 网关的 HTTPS 域名，密钥读环境变量 `SUB2API_API_KEY`，或 `~/.config/sub2api/api-key`（权限 600）；默认模型 `gemini-3.8-flash-high`（档位写在模型名里，可用 `--model` 换 `-medium`、`-low`）。加 `--provider deepseek` 改用 DeepSeek：密钥读 `DEEPSEEK_API_KEY` 或 `~/.config/deepseek/api-key`，模型 `deepseek-flash`（即 DeepSeek-V4.1-Flash-1017；接口只认这个名字）、推理强度 `max`。
+- **先读经验库**：`git -C ~/ideaProjects/ai-video-workbench pull --ff-only`（拉不下来不阻塞），读 `AI视频/调研/经验/README.md`。之后每个环节开始前读对应那份：需求、剧本 → `剧本与旁白.md`；连戏表、分段表、分镜 → `分镜与镜头.md`；三视图、提示词、生成 → `短剧视频生成.md`；声音 → `配乐配音.md`；审片、重抽 → `渲染与质检.md`。用到哪条写进这支片的 `交接.md`；做完把那条的状态回写成「实测有效（片名）」或「试过不行（原因）」。经验库和本 Skill 的规矩冲突时以本 Skill 为准。
 - 脚本访问方舟时**固定直连**，不读环境变量里的代理。会话里如果设了给 AI 工具用的出口代理，国内请求会绕路，上传慢几十倍，还会被 SSL 断开。
 
 ## 流程
@@ -30,7 +31,7 @@ description: 用火山方舟 Seedance 2.x API 按“Claude 当导演”的方式
    - 用户给了参考视频，或者说"照着某部剧拍"时，先用 `scripts/breakdown.py` 拆开，按 [references/reference-breakdown.md](references/reference-breakdown.md) 写拆解，再定需求。
 2. **剧本定稿**（`1_文档/剧本定稿.md`）
    - 用户只给了方向时，剧本是你写的，没人替你把关。按 project-templates.md 的自查清单逐条过，结构（因果、前 3 秒、线索、同一信息有没有说两遍、余韵、钩子）和人物（主角是不是只会对抗、行为合不合职业常识）都要查。
-   - **剧本没审好，不做素材、不生成视频。** 写完先跑 `python3 scripts/review_script.py 剧本.md --context "<用途和第一要求>"`，DeepSeek 分两路审：A 专业事实与真实性，B 台词表演与可拍性。每轮意见先逐条列给用户审批（标出处：实测 / Skill 规则 / AI 推断，附采纳或驳回的建议），用户批了才改，再带 `--prev 上一轮审稿.md` 复查；剧本定没定由用户说了算，不以"必须改：无"为准；每轮采纳和不采纳的理由记进改稿记录。剧本是改起来最便宜的环节，问题拖到成片才发现，就只能整段重抽。
+   - **剧本没审好，不做素材、不生成视频。** 写完先跑 `python3 scripts/review_script.py 剧本.md --context "<用途和第一要求>"`，分两路审：A 专业事实与真实性，B 台词表演与可拍性。每轮意见先逐条列给用户审批（标出处：实测 / Skill 规则 / AI 推断，附采纳或驳回的建议），用户批了才改，再带 `--prev 上一轮审稿.md` 复查；剧本定没定由用户说了算，不以"必须改：无"为准；每轮采纳和不采纳的理由记进改稿记录。剧本是改起来最便宜的环节，问题拖到成片才发现，就只能整段重抽。
    - **版权、合规少使劲**（批文号、注册证号、广告法、超说明书、平台规则这类）：不主动深挖，不当成必须改，用户问起再简短回答；审稿脚本也写明了不审这些。精力放在专业事实对不对、像不像真的、拍不拍得出来。
    - 审稿意见要逐条判断，不照单全收：逻辑和事实问题要改；"担心模型会拍坏、会露字"这类，用试跑或已拍出来的片段验证，没拍坏就不改。需要重抽时，先说清原因是剧本问题、提示词没写死，还是模型随机，再报价。
    - 给真实医生做个人 IP、科普这类片子，先过"真实关"（虚构剧集不适用，剧情优先，细节能真则真）：这件事在现实里是不是天天发生？称呼、人数、流程按现实来（例如医院叫号叫全名、三甲门诊不止一个医生），冲突来自人物的顾虑，不靠急症和反转撑戏。
@@ -75,7 +76,7 @@ description: 用火山方舟 Seedance 2.x API 按“Claude 当导演”的方式
 
 | 脚本 | 作用 |
 |---|---|
-| `scripts/review_script.py` | 剧本审稿：DeepSeek 分两路（A 专业事实与真实性、B 台词表演与可拍性），`--prev` 复查上一轮，打印两路是否"必须改：无" |
+| `scripts/review_script.py` | 剧本审稿：Gemini（可换 DeepSeek）分两路（A 专业事实与真实性、B 台词表演与可拍性），`--prev` 复查上一轮，打印两路是否"必须改：无" |
 | `scripts/ark_video.py` | 单段生成：`--ref` 参考图（按顺序对应 @图片1…）、`--ref-audio` 音色、`--first-frame`/`--last-frame`、`--resume`、`--list` |
 | `scripts/seedream.py` | 文生图出角色图，原图原样保存（`--size 2048x1152` 适合三视图） |
 | `scripts/run_segments.py` | 按 `3_提示词/分段.json` 批量生成，同时最多 3 个；提交前检查素材；输出 `4_生成片段/<段>_t<序号>_<模型>_<分辨率>.mp4`，并报出花费 |

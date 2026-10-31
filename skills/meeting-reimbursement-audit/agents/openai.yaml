@@ -1,4 +1,4 @@
 interface:
   display_name: "会议核销资料审核"
   short_description: "按指定范围核对会议人数、名单重合率、截图头像与海报背景，仅汇总问题"
-  default_prompt: "使用 $meeting-reimbursement-audit 按我指定的范围审核会议资料，参会时长以报告为准，截图只查有无头像，海报只查背景；各类问题分表，仅总结不合格项，材料缺失与待核实另列。"
+  default_prompt: "使用 $meeting-reimbursement-audit 按我指定的范围审核会议资料，参会时长以报告为准，截图只查有无头像，海报只查背景（截图/海报可选方法一模型看图，或方法二生成网页由我人工标注后读回）；各类问题分表，仅总结不合格项，材料缺失与待核实另列。"

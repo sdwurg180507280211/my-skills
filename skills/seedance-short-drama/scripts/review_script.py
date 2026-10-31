@@ -1,12 +1,14 @@
-"""剧本审稿：把剧本交给 DeepSeek，分两路挑刺，直到两路都"必须改：无"再进入素材和生成。
+"""剧本审稿：把剧本交给外部模型（默认 Gemini，可换 DeepSeek），分两路挑刺，直到两路都"必须改：无"再进入素材和生成。
 
   python3 review_script.py 剧本.md                      两路一起审，结果写到 剧本同目录/审稿_<时间>.md
   python3 review_script.py 剧本.md --route A            只审一路（A 专业事实与真实性，B 台词表演与可拍性）
   python3 review_script.py 剧本.md --prev 上一轮.md      复查：附上上一轮意见，让它先核对落实情况
   python3 review_script.py 剧本.md --context "给真实医生做个人 IP 的样片，第一要求是真实"
+  python3 review_script.py 剧本.md --provider deepseek   改用 DeepSeek 审
 
-密钥读环境变量 DEEPSEEK_API_KEY，或 ~/.config/deepseek/api-key；不打印、不写进输出。
-DeepSeek 在国内，固定直连，不走会话里的代理。
+gemini：经自建 Sub2API 网关（HTTPS 域名），密钥读环境变量 SUB2API_API_KEY，或 ~/.config/sub2api/api-key；走环境里的代理。
+deepseek：密钥读环境变量 DEEPSEEK_API_KEY，或 ~/.config/deepseek/api-key；DeepSeek 在国内，固定直连，不走会话里的代理。
+密钥不打印、不写进输出。
 """
 import argparse
 import json
@@ -19,9 +21,29 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-API = "https://api.deepseek.com/chat/completions"
-DEFAULT_MODEL = "deepseek-flash"  # 即 DeepSeek-V4.1-Flash-1017；写 deepseek-v4.1-flash 会被拒
-DEFAULT_EFFORT = "max"
+PROVIDERS = {
+    "gemini": {
+        "name": "Gemini",
+        "api": "https://yunyihui.mystic.net.cn/image-api/v1/chat/completions",
+        # 档位写在模型名里：-low / -medium / -high；审稿要推理，默认 high
+        "model": "gemini-3.8-flash-high",
+        "effort": None,
+        "env": "SUB2API_API_KEY",
+        "key_file": ("sub2api", "api-key"),
+        "direct": False,
+    },
+    "deepseek": {
+        "name": "DeepSeek",
+        "api": "https://api.deepseek.com/chat/completions",
+        "model": "deepseek-flash",  # 即 DeepSeek-V4.1-Flash-1017；写 deepseek-v4.1-flash 会被拒
+        "effort": "max",
+        "env": "DEEPSEEK_API_KEY",
+        "key_file": ("deepseek", "api-key"),
+        "direct": True,
+    },
+}
+DEFAULT_PROVIDER = "gemini"
+USER_AGENT = "my-skills-review/1.0"  # 网关拒绝默认的 Python-urllib UA
 
 ROUTES = {
     "A": ("专业事实与真实性",
@@ -46,14 +68,15 @@ FORMAT = ("输出格式：\n## 必须改\n（编号；每条写清在哪一段�
           "## 可以更好\n## 不用改\n（一句话）")
 
 
-def load_key():
-    key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+def load_key(provider=DEFAULT_PROVIDER):
+    p = PROVIDERS[provider]
+    key = os.environ.get(p["env"], "").strip()
     if key:
         return key
-    path = Path.home() / ".config" / "deepseek" / "api-key"
+    path = Path.home() / ".config" / Path(*p["key_file"])
     if path.exists():
         return path.read_text(encoding="utf-8").strip()
-    raise SystemExit("缺少 DeepSeek 密钥：设置 DEEPSEEK_API_KEY，或存到 ~/.config/deepseek/api-key（权限 600）")
+    raise SystemExit(f"缺少 {p['name']} 密钥：设置 {p['env']}，或存到 ~/.config/{'/'.join(p['key_file'])}（权限 600）")
 
 
 def build_messages(script, route, context="", prev="", today=None):
@@ -70,26 +93,32 @@ def build_messages(script, route, context="", prev="", today=None):
     return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "\n\n".join(parts)}]
 
 
-def build_body(script, route, model=DEFAULT_MODEL, effort=DEFAULT_EFFORT, context="", prev=""):
-    return {"model": model, "messages": build_messages(script, route, context, prev),
-            "reasoning_effort": effort, "stream": False}
+def build_body(script, route, provider=DEFAULT_PROVIDER, model=None, effort=None, context="", prev=""):
+    p = PROVIDERS[provider]
+    body = {"model": model or p["model"], "messages": build_messages(script, route, context, prev), "stream": False}
+    effort = effort or p["effort"]
+    if effort:
+        body["reasoning_effort"] = effort
+    return body
 
 
-def call(body, key, timeout=900):
-    """直连 DeepSeek；网络错误重试一次，HTTP 错误直接报出。"""
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+def call(body, key, provider=DEFAULT_PROVIDER, timeout=900):
+    """网络错误重试一次，HTTP 错误直接报出。DeepSeek 直连，其余走环境里的代理。"""
+    p = PROVIDERS[provider]
+    handlers = [urllib.request.ProxyHandler({})] if p["direct"] else []
+    opener = urllib.request.build_opener(*handlers)
     data = json.dumps(body, ensure_ascii=False).encode("utf-8")
     for attempt in range(2):
-        req = urllib.request.Request(API, data=data, headers={
-            "Authorization": "Bearer " + key, "Content-Type": "application/json"})
+        req = urllib.request.Request(p["api"], data=data, headers={
+            "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": USER_AGENT})
         try:
             with opener.open(req, timeout=timeout) as r:
                 return json.load(r)
         except urllib.error.HTTPError as e:
-            raise SystemExit(f"DeepSeek 返回 HTTP {e.code}：{e.read().decode('utf-8', 'replace')[:300]}")
+            raise SystemExit(f"{p['name']} 返回 HTTP {e.code}：{e.read().decode('utf-8', 'replace')[:300]}")
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
             if attempt:
-                raise SystemExit(f"连不上 DeepSeek：{e}")
+                raise SystemExit(f"连不上 {p['name']}：{e}")
             time.sleep(3)
 
 
@@ -114,22 +143,24 @@ def render(results):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="用 DeepSeek 分两路审剧本")
+    ap = argparse.ArgumentParser(description="用外部模型分两路审剧本")
     ap.add_argument("script")
     ap.add_argument("--route", choices=["A", "B", "AB"], default="AB")
     ap.add_argument("--context", default="", help="一两句背景：用途、第一要求、给谁看")
     ap.add_argument("--prev", help="上一轮的审稿结果文件（复查时用）")
-    ap.add_argument("--model", default=DEFAULT_MODEL)
-    ap.add_argument("--effort", default=DEFAULT_EFFORT)
+    ap.add_argument("--provider", choices=sorted(PROVIDERS), default=DEFAULT_PROVIDER)
+    ap.add_argument("--model", help="默认按 --provider 选")
+    ap.add_argument("--effort", help="推理强度，只有 DeepSeek 用（默认 max）")
     ap.add_argument("--out")
     a = ap.parse_args(argv)
     script_path = Path(a.script)
     script = script_path.read_text(encoding="utf-8")
     prev = Path(a.prev).read_text(encoding="utf-8") if a.prev else ""
-    key = load_key()
+    key = load_key(a.provider)
     routes = list(a.route) if a.route != "AB" else ["A", "B"]
     with ThreadPoolExecutor(len(routes)) as ex:
-        futures = {r: ex.submit(call, build_body(script, r, a.model, a.effort, a.context, prev), key) for r in routes}
+        futures = {r: ex.submit(call, build_body(script, r, a.provider, a.model, a.effort, a.context, prev), key, a.provider)
+                   for r in routes}
         results = [(r, futures[r].result()) for r in routes]
     out = Path(a.out) if a.out else script_path.with_name(f"审稿_{time.strftime('%Y%m%d_%H%M')}.md")
     out.write_text(render(results), encoding="utf-8")

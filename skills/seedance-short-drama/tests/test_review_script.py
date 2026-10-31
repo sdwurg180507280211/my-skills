@@ -1,4 +1,4 @@
-"""Offline tests for the DeepSeek script review; nothing is sent."""
+"""Offline tests for the script review; nothing is sent."""
 import os
 import sys
 import tempfile
@@ -11,8 +11,13 @@ import review_script  # noqa: E402
 
 
 class ReviewScriptTests(unittest.TestCase):
+    def test_default_provider_is_gemini_without_effort(self):
+        body = review_script.build_body("S1 台词", "B")
+        self.assertEqual(body["model"], "gemini-3.8-flash-high")
+        self.assertNotIn("reasoning_effort", body)
+
     def test_body_carries_model_effort_route_and_script(self):
-        body = review_script.build_body("S1 台词", "B", context="医生 IP 样片")
+        body = review_script.build_body("S1 台词", "B", provider="deepseek", context="医生 IP 样片")
         self.assertEqual(body["model"], "deepseek-flash")
         self.assertEqual(body["reasoning_effort"], "max")
         user = body["messages"][1]["content"]
@@ -37,20 +42,22 @@ class ReviewScriptTests(unittest.TestCase):
         self.assertIn("上次必须改的落实情况", user)
 
     def test_key_prefers_env_then_file(self):
-        with tempfile.TemporaryDirectory() as home:
-            f = Path(home) / ".config" / "deepseek" / "api-key"
-            f.parent.mkdir(parents=True)
-            f.write_text("from-file\n", encoding="utf-8")
-            with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "from-env"}), mock.patch.object(Path, "home", return_value=Path(home)):
-                self.assertEqual(review_script.load_key(), "from-env")
-            with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": ""}), mock.patch.object(Path, "home", return_value=Path(home)):
-                self.assertEqual(review_script.load_key(), "from-file")
+        for provider, env, folder in [("deepseek", "DEEPSEEK_API_KEY", "deepseek"), ("gemini", "SUB2API_API_KEY", "sub2api")]:
+            with tempfile.TemporaryDirectory() as home:
+                f = Path(home) / ".config" / folder / "api-key"
+                f.parent.mkdir(parents=True)
+                f.write_text("from-file\n", encoding="utf-8")
+                with mock.patch.dict(os.environ, {env: "from-env"}), mock.patch.object(Path, "home", return_value=Path(home)):
+                    self.assertEqual(review_script.load_key(provider), "from-env")
+                with mock.patch.dict(os.environ, {env: ""}), mock.patch.object(Path, "home", return_value=Path(home)):
+                    self.assertEqual(review_script.load_key(provider), "from-file")
 
     def test_missing_key_stops_without_printing_secrets(self):
-        with tempfile.TemporaryDirectory() as home:
-            with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": ""}), mock.patch.object(Path, "home", return_value=Path(home)):
-                with self.assertRaises(SystemExit):
-                    review_script.load_key()
+        for provider, env in [("deepseek", "DEEPSEEK_API_KEY"), ("gemini", "SUB2API_API_KEY")]:
+            with tempfile.TemporaryDirectory() as home:
+                with mock.patch.dict(os.environ, {env: ""}), mock.patch.object(Path, "home", return_value=Path(home)):
+                    with self.assertRaises(SystemExit):
+                        review_script.load_key(provider)
 
     def test_must_fix_section_is_parsed(self):
         clear = review_script.must_fix_clear

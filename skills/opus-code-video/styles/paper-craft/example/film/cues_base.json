@@ -1,0 +1,57 @@
+{
+ "fps": 30,
+ "duration": 14.6,
+ "note": "示例：《聊久了，AI 为什么会忘事》第 4 句「贴满了怎么办……它就看不见」，纸艺立体画法。画面 index.html 和配乐 audio.py 都读这里；有配音时 retime.py 据此生成 cues.json",
+ "ev": {
+  "full": 0.75,
+  "what": 1.15,
+  "cut": [
+   3.35,
+   4.0
+  ],
+  "tear1": 4.03,
+  "tear2": 4.11,
+  "slide": [
+   4.45,
+   5.05
+  ],
+  "new1": 4.88,
+  "new2": 5.3,
+  "focus": [
+   5.7,
+   6.6
+  ],
+  "cil": 7.59,
+  "push": 9.37,
+  "pull": [
+   10.45,
+   11.5
+  ],
+  "scan": [
+   11.2,
+   12.5
+  ],
+  "unseen": 12.75,
+  "huh": 13.0
+ },
+ "narration": {
+  "lines": "voice/旁白.txt",
+  "bounds": [
+   0,
+   "duration"
+  ],
+  "place": [
+   {
+    "seg": 0,
+    "lead": 0.3
+   }
+  ],
+  "tail": 0.5,
+  "end_hold": 0.8
+ },
+ "cast": {},
+ "brand": {
+  "name": "",
+  "mascot": ""
+ }
+}

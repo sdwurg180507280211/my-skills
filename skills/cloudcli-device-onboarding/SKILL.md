@@ -116,6 +116,18 @@ bash mac/setup.sh --server <服务器> --device-name <设备名> --cloudcli-pubk
 
 Mac 睡眠时隧道会断开。需要随时可连时，让用户到“系统设置 → 电池/能源”关闭自动睡眠。
 
+## 在 cloudcli 里登记设备
+
+隧道通了还不等于网页里能用。服务器上有设备清单时，由有管理权限的一方继续完成：
+
+1. **每个 cloudcli 账号一把登录密钥**：在服务器上为每个账号单独生成，公钥用安装脚本授权。
+2. **配置 SSH**：给每个账号加 SSH 别名，把设备主机公钥写进 `known_hosts`，保持 `StrictHostKeyChecking yes`。写入前核对 `ssh-keyscan` 的结果和设备上的主机公钥一致。
+3. **安装设备组件**：Windows 需要 Python 3.9 以上、PowerShell 7 和 cloudcli 的持续终端安装包（在服务器的设备向导目录里）。Mac 需要 Python 3.9 以上和 tmux。
+4. **登记**：用服务器上的 `register-device.py`，它会逐账号验证，失败不保存。设备 ID 只能用英文，中文写在 `--name` 里。改名时只改清单里的 `name`，不要改 `id`，否则旧聊天的绑定会失效。
+5. **验证持续终端**：连续执行两条命令，确认环境变量跨连接保留。
+
+用 winget 装 PowerShell 7 时，`--scope machine` 可能报“当前系统配置不支持”，改用 `--installer-type wix`。
+
 ## 如何验证
 
 按顺序验证，前一层不通过就不要宣称后一层成功。安装脚本只验证到第 1 层，后面几层要在服务器和 cloudcli 上确认：

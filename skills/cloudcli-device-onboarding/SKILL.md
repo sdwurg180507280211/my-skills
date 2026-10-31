@@ -69,7 +69,11 @@ AI 不能代做这几步，只把准备好的内容交给用户，等用户告�
 2. **登记公钥**。有管理权限的一方运行输出的命令，最后一行就是端口。同一设备名和公钥重复登记时，退出码是 3，并输出原端口，不会新增记录。
 3. **在设备上加端口再运行一次**，完成安装和本机验证。
 
-服务器还可能给 cloudcli 服务配了出站防火墙白名单。这时新端口要加进白名单，cloudcli 才连得上，详见“如何验证”第 4 层。这是安全边界，先让用户确认再改。
+服务器给 cloudcli 服务配了出站防火墙白名单时，第 2 步登记后还要把新端口加进去，否则 cloudcli 连不上。用户已授权这一步，由有服务器管理权限的一方直接完成，只加这台新设备的端口：
+
+1. 用 `systemctl list-units | grep -i firewall` 找到防火墙服务，看它的 `ExecStart` 脚本。
+2. 备份脚本，把端口加进每个 cloudcli 账号的白名单列表，然后用 sudo 重新运行脚本。
+3. 用 cloudcli 账号（不用 root）按“如何验证”第 3 层的命令读版本行，确认放行。
 
 还没有 skill 目录时先克隆仓库：
 
@@ -148,7 +152,7 @@ ssh -N -R 22999:localhost:22 -o BatchMode=yes cloudcli-tunnel   # 报 remote por
 | 日志出现 `Permission denied (publickey)` | 公钥还没登记，`AllowUsers` 或 `AllowGroups` 没有包含 `tunnel`，设备已被移除，或 `/home/tunnel/.ssh` 权限不对 | 重新运行 `init-tunnel-user.sh` 看警告。`AllowUsers` 要把 `tunnel` 加到现有行末尾并保留 root，改完 `sshd -t && systemctl reload sshd` |
 | `UsePAM no` 时 `tunnel` 公钥登录被拒 | 账号被视为锁定 | 按 `init-tunnel-user.sh` 的提示运行 `usermod -p '*' tunnel` |
 | `UNPROTECTED PRIVATE KEY FILE` 或 `Bad permissions` | 私钥权限过宽 | Mac：`chmod 600 ~/.ssh/cloudcli_tunnel_ed25519`。Windows：在 PowerShell 里运行 `icacls <私钥> /inheritance:r /grant "${env:USERNAME}:F" /grant "SYSTEM:F"` |
-| 第 2、3 层正常，cloudcli 连端口报 `Connection refused` | 服务器的出站防火墙只放行白名单端口，新端口不在其中 | 用 `systemctl list-units \| grep -i firewall` 找到防火墙服务，看它的 `ExecStart` 脚本。用户确认后把端口加入白名单并重新应用 |
+| 第 2、3 层正常，cloudcli 连端口报 `Connection refused` | 服务器的出站防火墙只放行白名单端口，新端口不在其中 | 用 `systemctl list-units \| grep -i firewall` 找到防火墙服务，看它的 `ExecStart` 脚本。按“操作流程”里的步骤把端口加入白名单 |
 | 隧道通了，但 cloudcli 登录 Windows 被拒 | 管理员账号的公钥位置、权限或编码不对 | 公钥必须在 `C:\ProgramData\ssh\administrators_authorized_keys`，权限只有 Administrators 和 SYSTEM，编码不能是 UTF-16。重新运行 `setup.ps1` 可以修正。还要确认 `C:\ProgramData\ssh\sshd_config` 里 `Match Group administrators` 段没有被注释 |
 | 隧道通了，但 cloudcli 登录 Mac 被拒 | `~/.ssh` 或 `authorized_keys` 权限不对，或远程登录限制了用户 | 目录 700、文件 600；在“远程登录”里确认当前用户被允许访问 |
 | Mac 过一会儿就连不上 | Mac 睡眠导致隧道断开 | 关闭自动睡眠。唤醒后 launchd 会自动重连；如果重连报 `remote port forwarding failed`，按上面第二行处理 |

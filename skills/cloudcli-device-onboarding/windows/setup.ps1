@@ -217,7 +217,8 @@ function Set-SshConfig {
     }
 
     # ssh 配置先出现的值优先，靠前的 Host * 可能盖掉这里的设置。这一步只解析配置，不连接。
-    $result = Invoke-Native $SshExe "-G $TunnelHost"
+    # Windows 版 ssh 往 .NET 或 PowerShell 建的 stderr 管道写日志时会卡死，所以用 -T 免掉“不分配终端”提示，用 -E NUL 不写 stderr。
+    $result = Invoke-Native $SshExe "-T -E NUL -G $TunnelHost"
     if ($result.ExitCode -ne 0) { Fail "ssh 无法解析 $SshConfig，请检查配置语法。" }
     $effective = @($result.Output -split "`r?`n")
     foreach ($item in @('user tunnel', "hostname $Server", 'exitonforwardfailure yes')) {
@@ -334,8 +335,13 @@ function Get-LogSize {
 
 function Read-LogFrom([long]$Offset) {
     if (-not (Test-Path -LiteralPath $LogFile)) { return '' }
-    # ssh 正在追加这个文件，必须允许共享读写。
-    $stream = New-Object IO.FileStream($LogFile, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+    # Windows 版 ssh -E 运行时独占日志，任何共享模式都打不开。打不开说明 ssh 还活着：
+    # 有 ExitOnForwardFailure，端口转发失败时它会退出并释放文件，也会被 PID 比较发现。
+    try {
+        $stream = New-Object IO.FileStream($LogFile, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+    } catch {
+        return ''
+    }
     try {
         [void]$stream.Seek($Offset, [IO.SeekOrigin]::Begin)
         $reader = New-Object IO.StreamReader($stream, $Utf8NoBom)

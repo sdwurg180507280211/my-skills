@@ -20,15 +20,17 @@ cloudcli ──ssh──▶ 127.0.0.1:<端口> ═══反向隧道═══▶
 
 - 隧道统一使用服务器上的专用用户 `tunnel`，它不能登录命令行。
 - 每台设备一把专用密钥，`authorized_keys` 限制它只能开自己那一个端口。
-- 新设备从 22024 起依次分配。22023 保留给 bjpc-windows，脚本不会分配。
-- 服务器的 `/home/tunnel/.ssh/authorized_keys` 是唯一的端口记录，每行末尾的 `cloudcli-tunnel:<端口>:<设备名>` 就是登记表。需要查端口时读这个文件。
+- 新设备从 22024 起分配。22023 保留给 bjpc-windows，脚本不会分配。
+- 分配时跳过所有用户 `authorized_keys` 的 `permitlisten`、`sshd_config` 的 `PermitListen` 和正在监听的端口，所以其他设备离线时，它的端口也不会被分出去。
+- `/home/tunnel/.ssh/authorized_keys` 记录走 `tunnel` 用户的设备，每行末尾的 `cloudcli-tunnel:<端口>:<设备名>` 就是登记表。早期设备可能用单独的隧道用户，要查全部端口时再看 `sshd_config` 的 `Match User` 段。
 
 ## 前置条件
 
-1. 服务器已运行过 `server/init-tunnel-user.sh`。没有运行过时，让用户在自己的终端运行一次（路径相对于本 skill），并处理输出的警告：
+1. 服务器已运行过 `server/init-tunnel-user.sh`。没有运行过时，由已有管理权限的一方运行一次（路径相对于本 skill），并处理输出的警告：
 
    ```bash
-   ssh root@<服务器> "bash -s" < server/init-tunnel-user.sh
+   ssh root@<服务器> "bash -s" < server/init-tunnel-user.sh   # 已有 root 密钥的电脑
+   sudo bash server/init-tunnel-user.sh                       # 已经在服务器上
    ```
 
 2. 阿里云安全组已放行 22 端口。
@@ -45,22 +47,29 @@ cloudcli ──ssh──▶ 127.0.0.1:<端口> ═══反向隧道═══▶
 
 端口默认自动分配，只有用户明确要求时才传。
 
+## 登记权限
+
+服务器通常设置了 `PermitRootLogin prohibit-password` 和 `PasswordAuthentication no`，新设备不能用 root 密码登录。不要为了接入设备重新打开密码登录，也不要把 root 私钥复制到新设备。
+
+所以新设备只负责生成密钥和输出公钥，登记由已有服务器管理权限的一方完成：已有 root 密钥的电脑，或者服务器上有 sudo 权限的会话。当前 AI 有这个权限时可以直接登记，先告诉用户要写入的设备名和公钥。
+
 ## 必须由用户亲手完成
 
-AI 不能代做这几步，也不能保存或转述密码。只把准备好的命令交给用户，等用户告诉你结果：
+AI 不能代做这几步，只把准备好的内容交给用户，等用户告诉你结果。不要向用户要密码或私钥：
 
-- **输入 root 密码**：脚本登记公钥时，用户在自己的终端里输入。不要让用户把密码发到聊天里，不要用 `sshpass`、`expect` 或任何代填方式。
 - **确认管理员权限**：Windows 上由用户自己打开管理员 PowerShell，不模拟点击 UAC。
 - **在 Mac 上打开远程登录**：系统设置 → 通用 → 共享 → 远程登录。
 - **在 cloudcli 里新增设备**：填脚本最后输出的地址、端口、用户名。
 
-安装脚本检测到没有交互式终端时会直接退出。大多数 AI 工具的命令执行环境都不是交互式终端，所以默认让用户把命令粘贴到自己的窗口运行，再把输出发回来。
-
 ## 操作流程
 
-两个脚本都可以重复运行，重复运行时密钥、端口、配置都沿用，不会重复添加，但需要再输入一次 root 密码。
+接入分三步，脚本都可以重复运行，密钥和配置都沿用，不会重复添加：
 
-运行前保留完整的 skill 目录，脚本要读取 `server/add-device-key.sh`。还没有这个目录时先克隆仓库：
+1. **在设备上运行安装脚本，不传端口**。它生成隧道密钥，输出公钥和登记命令，退出码是 2。这时还没有接入。
+2. **登记公钥**。有管理权限的一方运行输出的命令，最后一行就是端口。同一设备名和公钥重复登记时，退出码是 3，并输出原端口，不会新增记录。
+3. **在设备上加端口再运行一次**，完成安装和本机验证。
+
+还没有 skill 目录时先克隆仓库：
 
 ```bash
 git clone https://github.com/sdwurg180507280211/my-skills.git
@@ -75,9 +84,11 @@ cd my-skills/skills/cloudcli-device-onboarding
 powershell -ExecutionPolicy Bypass -File .\windows\setup.ps1 -Server <服务器> -DeviceName <设备名> -CloudcliPubKey "<cloudcli 公钥>"
 ```
 
+登记后加 `-Port <端口>` 再运行一次。
+
 用户希望 SSH 登录后进入 PowerShell 时，加 `-SetPowerShellDefaultShell`。
 
-脚本依次完成：检查管理员权限 → 安装并启动 sshd → 准备 `~\.ssh\cloudcli_tunnel_ed25519`（不动 `id_ed25519`）→ 登记公钥拿到端口 → 追加 `Host cloudcli-tunnel` → 生成 `~\cloudcli-tunnel.ps1` → 注册并启动计划任务 `CloudcliTunnel` → 授权 cloudcli 公钥 → 本机验证 → 输出汇总。
+脚本依次完成：检查管理员权限 → 安装并启动 sshd → 准备 `~\.ssh\cloudcli_tunnel_ed25519`（不动 `id_ed25519`）→ 没有端口时输出登记命令并退出 → 追加 `Host cloudcli-tunnel` → 生成 `~\cloudcli-tunnel.ps1` → 注册并启动计划任务 `CloudcliTunnel` → 授权 cloudcli 公钥 → 本机验证 → 输出汇总。
 
 计划任务在用户登录时启动，所以电脑重启后要登录这个账号，隧道才会恢复。
 
@@ -91,7 +102,9 @@ powershell -ExecutionPolicy Bypass -File .\windows\setup.ps1 -Server <服务器>
 bash mac/setup.sh --server <服务器> --device-name <设备名> --cloudcli-pubkey "<cloudcli 公钥>"
 ```
 
-脚本依次完成：检查 22 端口（没开时提示用户打开远程登录并等待）→ 准备 `~/.ssh/cloudcli_tunnel_ed25519` → 登记公钥拿到端口 → 追加 `Host cloudcli-tunnel` → 写入并加载 `~/Library/LaunchAgents/com.cloudcli.tunnel.plist` → 授权 cloudcli 公钥 → 本机验证 → 输出汇总。
+登记后加 `--port <端口>` 再运行一次。
+
+脚本依次完成：检查 22 端口（没开时报错，让用户打开远程登录后重新运行）→ 准备 `~/.ssh/cloudcli_tunnel_ed25519` → 没有端口时输出登记命令并退出 → 追加 `Host cloudcli-tunnel` → 写入并加载 `~/Library/LaunchAgents/com.cloudcli.tunnel.plist` → 授权 cloudcli 公钥 → 本机验证 → 输出汇总。
 
 Mac 睡眠时隧道会断开。需要随时可连时，让用户到“系统设置 → 电池/能源”关闭自动睡眠。
 
@@ -127,9 +140,10 @@ ssh -N -R 22999:localhost:22 -o BatchMode=yes cloudcli-tunnel   # 报 remote por
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| 登记时报端口被其他设备登记或正在被监听 | 指定的端口已被占用 | 不传端口，让脚本自动分配 |
+| 登记时报端口已被声明或正在被监听 | 指定的端口已被占用 | 不传端口，让脚本自动分配 |
+| `ssh root@<服务器>` 报 `Permission denied` | 服务器禁止 root 密码登录，这台电脑没有 root 密钥 | 换到已有 root 密钥的电脑或服务器上的 sudo 会话登记，不要打开密码登录 |
 | 日志出现 `remote port forwarding failed` | 服务器上旧连接还占着端口（常见于睡眠、断网后），或端口和 `permitlisten` 不一致 | 在服务器运行 `ss -tlnp \| grep ':<端口> '` 查占用进程；确认是这台设备的旧连接后结束它。长期解决：配置 `ClientAliveInterval`（见前置条件）。不一致时核对 `authorized_keys` 那一行和设备上的端口 |
-| 日志出现 `Permission denied (publickey)` | `AllowUsers` 或 `AllowGroups` 没有包含 `tunnel`，设备已被移除，或 `/home/tunnel/.ssh` 权限不对 | 重新运行 `init-tunnel-user.sh` 看警告。`AllowUsers` 要把 `tunnel` 加到现有行末尾并保留 root，改完 `sshd -t && systemctl reload sshd` |
+| 日志出现 `Permission denied (publickey)` | 公钥还没登记，`AllowUsers` 或 `AllowGroups` 没有包含 `tunnel`，设备已被移除，或 `/home/tunnel/.ssh` 权限不对 | 重新运行 `init-tunnel-user.sh` 看警告。`AllowUsers` 要把 `tunnel` 加到现有行末尾并保留 root，改完 `sshd -t && systemctl reload sshd` |
 | `UsePAM no` 时 `tunnel` 公钥登录被拒 | 账号被视为锁定 | 按 `init-tunnel-user.sh` 的提示运行 `usermod -p '*' tunnel` |
 | `UNPROTECTED PRIVATE KEY FILE` 或 `Bad permissions` | 私钥权限过宽 | Mac：`chmod 600 ~/.ssh/cloudcli_tunnel_ed25519`。Windows：在 PowerShell 里运行 `icacls <私钥> /inheritance:r /grant "${env:USERNAME}:F" /grant "SYSTEM:F"` |
 | 隧道通了，但 cloudcli 登录 Windows 被拒 | 管理员账号的公钥位置、权限或编码不对 | 公钥必须在 `C:\ProgramData\ssh\administrators_authorized_keys`，权限只有 Administrators 和 SYSTEM，编码不能是 UTF-16。重新运行 `setup.ps1` 可以修正。还要确认 `C:\ProgramData\ssh\sshd_config` 里 `Match Group administrators` 段没有被注释 |
@@ -170,51 +184,47 @@ rm ~/Library/LaunchAgents/com.cloudcli.tunnel.plist ~/Library/Logs/cloudcli-tunn
 rm ~/.ssh/cloudcli_tunnel_ed25519 ~/.ssh/cloudcli_tunnel_ed25519.pub
 ```
 
-然后手动删除设备 `~/.ssh/config` 里的 `Host cloudcli-tunnel` 段和授权文件里的 cloudcli 公钥，并在 cloudcli 里删除设备。
+然后手动删除设备 `~/.ssh/config` 里的 `Host cloudcli-tunnel` 段，并在 cloudcli 里删除设备。
 
-## 迁移 bjpc-windows
+授权文件里的 cloudcli 公钥只在接入前没有这把公钥时才删。接入前就有的不要删，否则这台设备现有的 cloudcli 连接也会失效。
 
-bjpc-windows 目前用 root 跑隧道，端口 22023。迁移后端口不变，cloudcli 里的设备配置不用改。
+## 迁移旧设备
 
-**尚未执行。** 用户明确要求迁移时才做，并且全程由用户在 bjpc-windows 本机窗口操作：第 3 步会断开经这条隧道的所有连接。第 4 步要输入 root 密码，第 3 步到第 5 步之间 cloudcli 连不上这台设备。
+**先确认是否需要迁移。** 用 root 跑隧道的设备才要迁移。已经用专用用户并限制了单端口的设备（比如 bjpc-windows 的 22023）符合安全规则，不要动。在服务器上核对：
 
-1. 在 bjpc-windows 的管理员 PowerShell 里生成专用密钥，提示输入口令时直接按两次回车（隧道要无人值守运行，不能设口令），然后查看公钥：
+```bash
+ss -tlnp | grep ':<端口> '                    # 端口在线时，看占用它的是 sshd: root 还是专用用户
+grep -n -A8 '^Match User' /etc/ssh/sshd_config   # 查哪个专用用户声明了这个端口
+```
 
-   ```powershell
-   ssh-keygen -t ed25519 -C cloudcli-tunnel:bjpc-windows -f "$env:USERPROFILE\.ssh\cloudcli_tunnel_ed25519"
-   Get-Content "$env:USERPROFILE\.ssh\cloudcli_tunnel_ed25519.pub"
-   ```
+确实在用 root 时，全程由用户在设备本机窗口操作：第 3 步会断开经这条隧道的所有连接，第 3 步到第 5 步之间 cloudcli 连不上这台设备。下面以 Windows 为例，Mac 换成 `mac/setup.sh` 对应的参数。
 
-2. 在服务器上手动登记。`add-device-key.sh` 不分配 22023，所以这一行要人工添加。只保留公钥的类型和 base64 两段：
+1. 运行一次 `setup.ps1`，不传端口，拿到隧道公钥。
+2. 在服务器上手动登记，端口沿用原来的。脚本不接受已被占用的端口，所以这一行要人工添加，只保留公钥的类型和 base64 两段：
 
    ```bash
    cd /home/tunnel/.ssh && cp -p authorized_keys authorized_keys.bak
-   printf '%s\n' 'restrict,port-forwarding,permitlisten="localhost:22023" <类型> <base64> cloudcli-tunnel:22023:bjpc-windows' >> authorized_keys
+   printf '%s\n' 'restrict,port-forwarding,permitlisten="localhost:<端口>" <类型> <base64> cloudcli-tunnel:<端口>:<设备名>' >> authorized_keys
    ```
 
-3. 在 bjpc-windows 上找到旧隧道及其启动方式，先停用启动方式（计划任务、服务或启动项），再结束进程。否则它会重连并继续占着 22023：
+3. 在设备上找到旧隧道及其启动方式，先停用启动方式（计划任务、服务或启动项），再结束进程。否则它会重连并继续占着端口：
 
    ```powershell
-   Get-CimInstance Win32_Process -Filter "Name='ssh.exe'" | Where-Object { $_.CommandLine -like '*22023*' } | Select-Object ProcessId, ParentProcessId, CommandLine
+   Get-CimInstance Win32_Process -Filter "Name='ssh.exe'" | Where-Object { $_.CommandLine -like '*<端口>*' } | Select-Object ProcessId, ParentProcessId, CommandLine
    ```
 
-   然后在服务器确认 `ss -tln | grep ':22023 '` 已经没有输出。
+   然后在服务器确认 `ss -tln | grep ':<端口> '` 已经没有输出。
 
-4. 在 bjpc-windows 上运行安装脚本。服务器发现同名同钥的登记后，沿用 22023：
-
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\windows\setup.ps1 -Server <服务器> -DeviceName bjpc-windows -Port 22023 -CloudcliPubKey "<cloudcli 公钥>"
-   ```
-
+4. 在设备上加 `-Port <端口>` 再运行一次 `setup.ps1`。
 5. 按“如何验证”逐层确认，并确认 cloudcli 能正常连接。
-
-6. 全部通过后，才从 `/root/.ssh/authorized_keys` 删除这台设备旧隧道用的那把公钥。先用 `ssh-keygen -lf` 核对指纹，确认它只用于这条隧道；操作时另外保留一个已登录的 root 会话。
+6. 全部通过后，才从 `/root/.ssh/authorized_keys` 删除旧隧道用的那把公钥。先用 `ssh-keygen -lf` 核对指纹，确认它只用于这条隧道；操作时另外保留一个已登录的 root 会话。
 
 **回滚**：第 5 步失败时，运行 `Unregister-ScheduledTask -TaskName CloudcliTunnel -Confirm:$false` 并结束新的 ssh 进程，恢复第 3 步停用的启动方式。旧的 root 公钥此时还没删，隧道可以恢复。
 
 ## 安全规则
 
-- 不用 root 跑隧道。bjpc-windows 是待迁移的遗留情况，不能作为先例。
+- 不用 root 跑隧道。
+- 不为接入设备打开 root 密码登录。登记由已有管理权限的一方完成。
 - 不开启 `GatewayPorts`。隧道端口只绑定服务器本机。
 - 安全组不放行 220xx 端口，只放行 22。
 - 私钥不离开生成它的设备。登记时只传公钥，不复制、不上传私钥。

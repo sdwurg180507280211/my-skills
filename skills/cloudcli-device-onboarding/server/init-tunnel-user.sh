@@ -2,7 +2,9 @@
 # 在 cloudcli 服务器上以 root 运行：创建隧道专用用户 tunnel 并检查 sshd 配置。
 # 可重复运行。只检查和提示，不修改 sshd_config。
 #
-# 用法：ssh root@<服务器> "bash -s" < init-tunnel-user.sh
+# 用法（服务器通常禁止 root 密码登录，所以二选一）：
+#   已有 root 密钥的电脑：ssh root@<服务器> "bash -s" < init-tunnel-user.sh
+#   已经在服务器上：sudo bash init-tunnel-user.sh
 set -euo pipefail
 # 非登录式 ssh 会话的 PATH 可能不含 sbin，而 useradd、sshd、nologin 都在那里。
 export PATH="/usr/local/sbin:/usr/sbin:/sbin:$PATH"

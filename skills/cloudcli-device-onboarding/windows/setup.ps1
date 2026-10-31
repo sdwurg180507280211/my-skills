@@ -4,6 +4,9 @@
 用法（在管理员 PowerShell 窗口里运行）：
   powershell -ExecutionPolicy Bypass -File .\setup.ps1 -Server <服务器> -DeviceName <设备名> -CloudcliPubKey "<公钥>"
 可选：-Port <端口>、-SetPowerShellDefaultShell
+
+分两次运行：第一次不传 -Port，生成隧道密钥，输出公钥和登记命令，退出码 2，这时还没有接入。
+由有服务器管理权限的一方登记、拿到端口后，加 -Port 再运行一次，完成安装和本机验证。
 没有传 -Server 时读取环境变量 CLOUDCLI_SERVER。
 
 本文件必须保存为带 BOM 的 UTF-8，否则 Windows PowerShell 5.1 读到的中文是乱码。
@@ -21,14 +24,13 @@ $ErrorActionPreference = 'Stop'
 
 $TaskName = 'CloudcliTunnel'
 $TunnelHost = 'cloudcli-tunnel'
-$ExitAlreadyRegistered = 3
+$ExitNeedsRegistration = 2
 $KeyPattern = '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com) [A-Za-z0-9+/]+={0,3}( .*)?$'
 $SshDir = Join-Path $env:USERPROFILE '.ssh'
 $KeyFile = Join-Path $SshDir 'cloudcli_tunnel_ed25519'
 $SshConfig = Join-Path $SshDir 'config'
 $TunnelScript = Join-Path $env:USERPROFILE 'cloudcli-tunnel.ps1'
 $LogFile = Join-Path $env:USERPROFILE 'cloudcli-tunnel.log'
-$AddKeyScript = Join-Path $PSScriptRoot '..\server\add-device-key.sh'
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 function Fail([string]$Message) {
@@ -80,11 +82,10 @@ function Test-Arguments {
     if ($DeviceName -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$') { Fail '设备名只能包含字母、数字、点、下划线和连字符，且以字母或数字开头。' }
     if ($CloudcliPubKey -match "[\r\n]" -or $CloudcliPubKey -cnotmatch $KeyPattern) { Fail 'cloudcli 公钥格式不对，应为一行“类型 base64 [注释]”。' }
     if ($Port -ne 0 -and ($Port -lt 1024 -or $Port -gt 65535)) { Fail '端口必须是 1024-65535 之间的数字。' }
-    if (-not (Test-Path -LiteralPath $AddKeyScript)) { Fail "找不到 $AddKeyScript，请保留完整的 skill 目录。" }
 }
 
 function Test-Elevated {
-    Write-Step '1/11 检查管理员权限'
+    Write-Step '1/10 检查管理员权限'
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Fail '请右键“以管理员身份运行”打开 PowerShell，再重新运行这条命令。'
@@ -98,14 +99,11 @@ function Test-Elevated {
         Fail "当前以 $current 运行，但登录桌面的是 $desktopUser。请用要接入 cloudcli 的账号登录桌面，并让该账号自己以管理员身份运行。"
     }
 
-    if ([Console]::IsInputRedirected) {
-        Fail '当前环境没有可交互的终端。请在自己打开的管理员 PowerShell 窗口运行，因为 root 密码必须由你亲手输入。'
-    }
     Write-Host '已确认管理员权限。'
 }
 
 function Enable-Sshd {
-    Write-Step '2/11 检查 sshd 服务'
+    Write-Step '2/10 检查 sshd 服务'
     if (-not (Get-Service -Name sshd -ErrorAction SilentlyContinue)) {
         Write-Host '未安装 OpenSSH Server，正在安装（可能需要几分钟）...'
         try {
@@ -134,7 +132,7 @@ function Enable-Sshd {
 }
 
 function Get-TunnelPublicKey {
-    Write-Step '3/11 准备隧道专用密钥'
+    Write-Step '3/10 准备隧道专用密钥'
     if (-not (Test-Path -LiteralPath $SshDir)) {
         New-Item -ItemType Directory -Path $SshDir | Out-Null
     }
@@ -157,27 +155,19 @@ function Get-TunnelPublicKey {
     return $publicKey
 }
 
-function Register-TunnelKey([string]$PublicKey) {
-    Write-Step '4/11 在服务器登记公钥'
-    Write-Host '接下来请在这个窗口亲手输入 root 密码，密码不会被保存。'
-    # 脚本可能被 Git 转成 CRLF，而 bash 不接受 CRLF，这里统一成 LF 后按原始字节发送。
-    $text = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $AddKeyScript).Path).Replace("`r`n", "`n")
-    $scriptBytes = $Utf8NoBom.GetBytes($text)
-    $portArgument = if ($Port -ne 0) { " $Port" } else { '' }
-    $remoteCommand = "bash -s -- '$DeviceName' '$PublicKey'$portArgument"
-    $result = Invoke-Native $SshExe "root@$Server `"$remoteCommand`"" $scriptBytes
-    switch ($result.ExitCode) {
-        0 { }
-        $ExitAlreadyRegistered { Write-Host '服务器上已有这台设备的登记，沿用原端口。' }
-        255 { Fail '连不上服务器或 root 登录失败。请确认服务器地址、root 密码，以及安全组已放行 22 端口。' }
-        default { Fail '服务器拒绝登记，原因见上面的输出。' }
-    }
-    $lines = @($result.Output -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-    if ($lines.Count -eq 0 -or $lines[-1] -notmatch '^\d+$') {
-        Fail "没有从服务器拿到端口号，实际输出：$($result.Output)"
-    }
-    Write-Host "隧道端口：$($lines[-1])"
-    return [int]$lines[-1]
+function Write-RegistrationRequest([string]$PublicKey) {
+    Write-Host ''
+    Write-Host '还没有接入：这把隧道公钥要先在服务器登记。服务器通常禁止 root 密码登录，所以由已有管理权限的一方操作。'
+    Write-Host ''
+    Write-Host "设备名：$DeviceName"
+    Write-Host "隧道公钥：$PublicKey"
+    Write-Host ''
+    Write-Host '在 skill 目录下运行，二选一，输出的最后一行就是端口：'
+    Write-Host "  已有 root 密钥的电脑（bash）：ssh root@$Server `"bash -s -- '$DeviceName' '$PublicKey'`" < server/add-device-key.sh"
+    Write-Host "  已经在服务器上：sudo bash server/add-device-key.sh $DeviceName '$PublicKey'"
+    Write-Host ''
+    Write-Host '拿到端口后，在这台电脑上加 -Port <端口> 重新运行这条命令。'
+    exit $ExitNeedsRegistration
 }
 
 function Get-NormalizedHostBlock([string[]]$Lines) {
@@ -196,7 +186,7 @@ function Get-NormalizedHostBlock([string[]]$Lines) {
 }
 
 function Set-SshConfig {
-    Write-Step '5/11 配置 ~/.ssh/config'
+    Write-Step '4/10 配置 ~/.ssh/config'
     $expectedLines = @(
         "Host $TunnelHost",
         "    HostName $Server",
@@ -238,7 +228,7 @@ function Set-SshConfig {
 }
 
 function Write-TunnelScript([int]$TunnelPort) {
-    Write-Step '6/11 生成隧道脚本'
+    Write-Step '5/10 生成隧道脚本'
     # ssh -E 把标准错误追加写到日志。PowerShell 5.1 的 2>> 会把日志写成 UTF-16 并混入错误记录。
     $content = @'
 # Generated by cloudcli-device-onboarding/windows/setup.ps1. Re-run setup.ps1 to change it.
@@ -273,7 +263,7 @@ function Stop-OldTunnel([int]$TunnelPort) {
 }
 
 function Register-TunnelTask {
-    Write-Step '7/11 注册计划任务'
+    Write-Step '6/10 注册计划任务'
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$TunnelScript`""
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User $identity
@@ -314,7 +304,7 @@ function Add-UniqueKey([string]$Path, [string]$PublicKey) {
 }
 
 function Set-CloudcliKey {
-    Write-Step '8/11 授权 cloudcli 公钥'
+    Write-Step '7/10 授权 cloudcli 公钥'
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         $path = 'C:\ProgramData\ssh\administrators_authorized_keys'
@@ -328,7 +318,7 @@ function Set-CloudcliKey {
 
 function Set-DefaultShell {
     if (-not $SetPowerShellDefaultShell) { return }
-    Write-Step '9/11 设置 SSH 默认 shell'
+    Write-Step '8/10 设置 SSH 默认 shell'
     $shell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     if (-not (Test-Path -LiteralPath 'HKLM:\SOFTWARE\OpenSSH')) {
         New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force | Out-Null
@@ -356,7 +346,7 @@ function Read-LogFrom([long]$Offset) {
 }
 
 function Test-Tunnel([int]$TunnelPort, [long]$LogOffset) {
-    Write-Step '10/11 本机验证（约 15 秒）'
+    Write-Step '9/10 本机验证（约 15 秒）'
     Start-Sleep -Seconds 5
     $firstPid = @(Get-TunnelProcessId $TunnelPort)
     Start-Sleep -Seconds 10
@@ -379,7 +369,7 @@ function Test-Tunnel([int]$TunnelPort, [long]$LogOffset) {
 }
 
 function Write-Summary([int]$TunnelPort) {
-    Write-Step '11/11 完成'
+    Write-Step '10/10 完成'
     Write-Host "设备名：$DeviceName"
     Write-Host "Windows 用户名：$env:USERNAME"
     Write-Host "隧道端口：$TunnelPort"
@@ -404,7 +394,8 @@ try {
     $SshExe = Find-SshTool 'ssh.exe'
     $SshKeygenExe = Find-SshTool 'ssh-keygen.exe'
     $tunnelPublicKey = Get-TunnelPublicKey
-    $assignedPort = Register-TunnelKey $tunnelPublicKey
+    if ($Port -eq 0) { Write-RegistrationRequest $tunnelPublicKey }
+    $assignedPort = $Port
     Set-SshConfig
     Write-TunnelScript $assignedPort
     Stop-OldTunnel $assignedPort

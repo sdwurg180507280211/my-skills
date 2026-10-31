@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# 在 cloudcli 服务器上以 root 运行：登记设备公钥并分配隧道端口。
-# 服务器上的 authorized_keys 是唯一的端口记录，每行末尾注释就是登记表。
+# 在 cloudcli 服务器上以 root 运行：登记设备公钥并分配隧道端口。由已有服务器管理权限的一方运行。
+# tunnel 用户的 authorized_keys 是这些设备的端口记录，每行末尾注释就是登记表。
 #
-# 用法：ssh root@<服务器> "bash -s -- <设备名> '<公钥>' [端口]" < add-device-key.sh
+# 用法（服务器通常禁止 root 密码登录，所以二选一）：
+#   已有 root 密钥的电脑：ssh root@<服务器> "bash -s -- <设备名> '<公钥>' [端口]" < add-device-key.sh
+#   已经在服务器上：sudo bash add-device-key.sh <设备名> '<公钥>' [端口]
 #
 # 标准输出只有最后一行端口号，其余信息都走标准错误。退出码：
 #   0  新登记成功
@@ -25,8 +27,24 @@ say() { printf '%s\n' "$*" >&2; }
 
 # 这个脚本可能由 bash -s 从标准输入读取，下面的命令都不能读标准输入，否则会吞掉脚本内容。
 
+authorized_keys_files() {
+  getent passwd | cut -d: -f6 | sort -u | while IFS= read -r home; do
+    if [ -f "$home/.ssh/authorized_keys" ]; then
+      printf '%s\n' "$home/.ssh/authorized_keys"
+    fi
+  done
+}
+
+# 所有用户和 sshd_config 里声明过的端口。设备离线时不监听，只看 ss 会把别的设备的端口再分出去。
 registered_ports() {
-  { grep -Eo '(permitlisten="[^"]*:|cloudcli-tunnel:)[0-9]+' "$AUTH_KEYS" || true; } | grep -Eo '[0-9]+$' || true
+  local file
+  while IFS= read -r file; do
+    { grep -Eo 'permitlisten="[^"]*"|cloudcli-tunnel:[0-9]+' "$file" || true; } | tr -d '"' | { grep -Eo '[0-9]+$' || true; }
+  done < <(authorized_keys_files)
+  for file in /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf; do
+    [ -f "$file" ] || continue
+    awk 'tolower($1) == "permitlisten" { for (i = 2; i <= NF; i++) { n = split($i, a, ":"); print a[n] } }' "$file"
+  done
 }
 
 listening_ports() {
@@ -73,7 +91,7 @@ choose_port() {
 
   if [ -n "$requested" ]; then
     if grep -qx "$requested" <<<"$registered"; then
-      die "端口 $requested 已被其他设备登记。"
+      die "端口 $requested 已被其他设备或用户声明。"
     fi
     if grep -qx "$requested" <<<"$listening"; then
       die "端口 $requested 正在被监听，不是空闲端口。"

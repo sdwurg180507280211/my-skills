@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # 把这台 Mac 接入 cloudcli：建立到服务器的反向隧道并授权 cloudcli 公钥。可重复运行。
 #
+# 分两次运行：
+#   第一次不传 --port：生成隧道密钥，输出公钥和登记命令，退出码 2，这时还没有接入。
+#   由有服务器管理权限的一方登记、拿到端口后，加 --port 再运行一次，完成安装和本机验证。
+#
 # 用法：
 #   bash setup.sh --server <服务器> --device-name <设备名> --cloudcli-pubkey "<公钥>" [--port <端口>]
 # 没有传 --server 时读取环境变量 CLOUDCLI_SERVER。
-# 需要在真实终端里运行：登记公钥时要用户亲手输入一次 root 密码。
-# shellcheck disable=SC1111,SC2029,SC2094  # 中文弯引号有意保留；远程命令要在本地展开；只是追加前检查文件
+# shellcheck disable=SC1111,SC2094  # 中文弯引号有意保留；只是追加前检查文件
 set -euo pipefail
 
 LABEL=com.cloudcli.tunnel
@@ -16,9 +19,8 @@ SSH_DIR="$HOME/.ssh"
 KEY_FILE="$SSH_DIR/cloudcli_tunnel_ed25519"
 SSH_CONFIG="$SSH_DIR/config"
 AUTHORIZED_KEYS="$SSH_DIR/authorized_keys"
-ADD_KEY_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/server/add-device-key.sh"
 KEY_RE='^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com) [A-Za-z0-9+/]+={0,3}( .*)?$'
-EXIT_ALREADY_REGISTERED=3
+EXIT_NEEDS_REGISTRATION=2
 
 SERVER="${CLOUDCLI_SERVER:-}"
 DEVICE_NAME=""
@@ -65,23 +67,17 @@ validate_args() {
       die "端口必须是 1024-65535 之间的数字。"
     fi
   fi
-  [ -f "$ADD_KEY_SCRIPT" ] || die "找不到 ${ADD_KEY_SCRIPT}，请保留完整的 skill 目录。"
-  ( : </dev/tty ) 2>/dev/null || die "当前环境没有可交互的终端。请在 Mac 自己的“终端”窗口运行这条命令，因为 root 密码必须由你亲手输入。"
   launchctl print "gui/$(id -u)" >/dev/null 2>&1 || die "当前用户没有图形登录会话，无法加载 LaunchAgent。请先在这台 Mac 上登录桌面，再从那里的终端运行。"
 }
 
 check_remote_login() {
-  step "1/8 检查远程登录"
-  while ! nc -z localhost 22 >/dev/null 2>&1; do
-    echo "22 端口没有在监听。请到“系统设置 → 通用 → 共享 → 远程登录”打开它。"
-    printf '打开后按回车继续（Ctrl-C 退出）：'
-    read -r _ </dev/tty || die "读取输入失败。"
-  done
+  step "1/7 检查远程登录"
+  nc -z localhost 22 >/dev/null 2>&1 || die "22 端口没有在监听。请到“系统设置 → 通用 → 共享 → 远程登录”打开它，然后重新运行。"
   echo "22 端口正在监听。"
 }
 
 ensure_tunnel_key() {
-  step "2/8 准备隧道专用密钥"
+  step "2/7 准备隧道专用密钥"
   install -d -m 700 "$SSH_DIR" || die "创建 $SSH_DIR 失败。"
   chmod 700 "$SSH_DIR" || die "设置 $SSH_DIR 权限失败。"
   if [ -f "$KEY_FILE" ]; then
@@ -96,20 +92,21 @@ ensure_tunnel_key() {
   [ -f "$KEY_FILE.pub" ] || printf '%s\n' "$TUNNEL_PUBKEY" >"$KEY_FILE.pub"
 }
 
-register_key() {
-  step "3/8 在服务器登记公钥"
-  echo "接下来请在这个终端亲手输入 root 密码，密码不会被保存。"
-  local output rc=0
-  output=$(ssh "root@$SERVER" "bash -s -- '$DEVICE_NAME' '$TUNNEL_PUBKEY' $PORT" <"$ADD_KEY_SCRIPT") || rc=$?
-  case "$rc" in
-    0) ;;
-    "$EXIT_ALREADY_REGISTERED") echo "服务器上已有这台设备的登记，沿用原端口。" ;;
-    255) die "连不上服务器或 root 登录失败。请确认服务器地址、root 密码，以及安全组已放行 22 端口。" ;;
-    *) die "服务器拒绝登记，原因见上面的输出。" ;;
-  esac
-  PORT=$(awk 'NF { line = $0 } END { print line }' <<<"$output")
-  [[ $PORT =~ ^[0-9]+$ ]] || die "没有从服务器拿到端口号，实际输出：$output"
-  echo "隧道端口：$PORT"
+request_registration() {
+  cat <<EOF
+
+还没有接入：这把隧道公钥要先在服务器登记。服务器通常禁止 root 密码登录，所以由已有管理权限的一方操作。
+
+设备名：$DEVICE_NAME
+隧道公钥：$TUNNEL_PUBKEY
+
+在 skill 目录下运行，二选一，输出的最后一行就是端口：
+  已有 root 密钥的电脑：ssh root@$SERVER "bash -s -- '$DEVICE_NAME' '$TUNNEL_PUBKEY'" < server/add-device-key.sh
+  已经在服务器上：sudo bash server/add-device-key.sh $DEVICE_NAME '$TUNNEL_PUBKEY'
+
+拿到端口后，在这台 Mac 上加 --port <端口> 重新运行这条命令。
+EOF
+  exit "$EXIT_NEEDS_REGISTRATION"
 }
 
 expected_host_block() {
@@ -139,7 +136,7 @@ normalized_host_block() {
 }
 
 ensure_ssh_config() {
-  step "4/8 配置 ~/.ssh/config"
+  step "3/7 配置 ~/.ssh/config"
   local existing expected
   expected=$(expected_host_block | normalized_host_block)
   existing=""
@@ -219,7 +216,7 @@ EOF
 }
 
 load_agent() {
-  step "5/8 配置 LaunchAgent"
+  step "4/7 配置 LaunchAgent"
   local domain
   domain="gui/$(id -u)"
   write_plist
@@ -236,7 +233,7 @@ load_agent() {
 }
 
 authorize_cloudcli_key() {
-  step "6/8 授权 cloudcli 公钥"
+  step "5/7 授权 cloudcli 公钥"
   local key_body
   key_body=$(awk '{ print $2 }' <<<"$CLOUDCLI_PUBKEY")
   if [ ! -e "$AUTHORIZED_KEYS" ]; then
@@ -270,7 +267,7 @@ log_size() {
 }
 
 verify_tunnel() {
-  step "7/8 本机验证（约 15 秒）"
+  step "6/7 本机验证（约 15 秒）"
   local log_offset=$1 first_pid second_pid new_log
   sleep 5
   first_pid=$(tunnel_pid)
@@ -285,7 +282,7 @@ verify_tunnel() {
   # launchd 会自动重启失败的 ssh，只看进程在不在分不出来，所以比较前后两次的 PID。
   if [ -z "$first_pid" ] || [ "$first_pid" != "$second_pid" ]; then
     printf '%s\n' "$new_log" | tail -n 20 >&2
-    die "隧道进程没有稳定运行（PID：${first_pid:-无} → ${second_pid:-无}）。日志：$LOG_FILE"
+    die "隧道进程没有稳定运行（PID：${first_pid:-无} → ${second_pid:-无}）。日志里有 Permission denied 时，通常是公钥还没登记。日志：$LOG_FILE"
   fi
   if grep -q "remote port forwarding failed" <<<"$new_log"; then
     die "日志出现 remote port forwarding failed：端口 $PORT 被占用，或不符合服务器上的限制。日志：$LOG_FILE"
@@ -297,7 +294,7 @@ verify_tunnel() {
 }
 
 print_summary() {
-  step "8/8 完成"
+  step "7/7 完成"
   cat <<EOF
 设备名：$DEVICE_NAME
 Mac 用户名：$(id -un)
@@ -317,7 +314,7 @@ main() {
   validate_args
   check_remote_login
   ensure_tunnel_key
-  register_key
+  [ -n "$PORT" ] || request_registration
   ensure_ssh_config
   local log_offset
   log_offset=$(log_size)
